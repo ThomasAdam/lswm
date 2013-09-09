@@ -1,0 +1,44 @@
+Rough idea for a window manager.
+
+* XCB.
+* XRandR.
+* Separate workspaces per monitor.
+
+* Consider tmux to be a good model for window behaviour:
+        - status-line (as a window list) via dzen2---but in what format?
+            - status update could be output via a socket; something could poll
+              that as and when updates occur.
+        - Configuration:  defaults hard-coded, then overridden in config
+          file.
+        - linking a window (read:  "sticky") should have separate
+          geometry per workspace; when switching workspaces, the client's
+          geometries are relocated.
+            - Clients could have some undo list for last known positions.
+        - Hooks?  Events to be fired off after certain actions.
+        - Window/workspace actions via command-prompt (just like ratpoison).
+
+* Internal structs:
+        - Don't use typedefs.
+        - Create a geometry struct to hold size/position information and
+          update that for operations including maximise.
+        - Rather than hand-rolling linked-lists, use TAILQ/RB_TREE for
+          storage/linking?  How is that handled on non-BSD systems?
+            - queue.h
+
+* EWMH support.
+
+* Unmanaged windows need handling.
+
+* Key/mouse bindings need supporting via config.
+        - Don't enforce XK_ prefix for key bindings.
+        - What about allow a leader-key (like prefix-key in tmux) for some
+          operations; perhaps specified via config file?
+
+* Windows should snap to each other and to screen edges.
+
+* Windows should snap to nearest edge in a given direction.
+
+* Windows should maximise to fill their available space when asked.
+
+* No special-casing of maximised state, it's just another geometry set which
+  is added to the list, and popped when no longer in that state.

@@ -1,4 +1,4 @@
 lswm
 ====
 
-Potential new Window Manager; see README for notes.
+Potential new Window Manager; see TODO for ideas, etc.
