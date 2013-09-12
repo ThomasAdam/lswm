@@ -21,7 +21,7 @@
 int main(int argc, char **argv)
 {
 	dpy = xcb_connect(NULL, &default_screen);
-	if (xcb_connection_has_error) {
+	if (xcb_connection_has_error(dpy)) {
 		fprintf(stderr, "Couldn't open DISPLAY\n");
 		return (1);
 	}
