@@ -14,45 +14,17 @@
  * OUT OF OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 
-#ifndef _LSWM__H_
-#define _LSWM__H_
+#include <stdio.h>
+#include <stdbool.h>
+#include "lswm.h"
 
-#include <xcb/xcb.h>
-#include <xcb/xcb_event.h>
-#include <xcb/randr.h>
-#include <xcb/xcb_ewmh.h>
+int main(int argc, char **argv)
+{
+	dpy = xcb_connect(NULL, &default_screen);
+	if (xcb_connection_has_error) {
+		fprintf(stderr, "Couldn't open DISPLAY\n");
+		return (1);
+	}
 
-#define PROGNAME	"lswm"
-#define VERSION		0.1
-
-struct geometry {
-	/* Actual geometry coordinates. */
-	int	 x;
-	int	 y;
-	int	 w;
-	int	 h;
-	
-	/* The window's border width */
-	int	 bw;
-
-	/* Hints for controlling window size. */
-	struct {
-		int	 min_w;
-		int	 min_h;
-		int	 max_w;
-		int	 max_h;
-		int	 base_w;
-		int	 base_h;
-		int	 win_gravity_hint;
-		int	 win_gravity;
-	} hints;
-};
-
-struct ewmh;
-struct client;
-struct monitor;
-
-xcb_connection_t	*dpy;
-int			 default_screen;
-
-#endif
+	return (0);
+}
