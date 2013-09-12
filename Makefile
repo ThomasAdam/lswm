@@ -38,3 +38,6 @@ all:			lswm
 
 lswm:			${OBJS}
 				${CC} ${LDFLAGS} -o lswm ${OBJS} ${LIBS}
+
+clean:
+				rm -f *.o core lswm
