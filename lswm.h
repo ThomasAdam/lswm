@@ -54,5 +54,15 @@ struct monitor;
 
 xcb_connection_t	*dpy;
 int			 default_screen;
+int                     log_level;
 
+/* log.c */
+void    log_file(void);
+void    log_close(void);
+void    log_msg(const char *, ...);
+void    log_fatal(const char *, ...);
+
+/* wrapper-lib.c */
+int     xasprintf(char **, const char *, ...);
+void   *xmalloc(size_t);
 #endif
