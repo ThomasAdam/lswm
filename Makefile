@@ -3,10 +3,10 @@
 
 VERSION= 0.1
 
-#DEBUG= 1
+DEBUG= 1
 
 CC?= cc
-CFLAGS+= -DBUILD="\"$(VERSION)\""
+CFLAGS+= -D_GNU_SOURCE -DBUILD="\"$(VERSION)\""
 #LDFLAGS+= -L/usr/local/lib
 LIBS+= -lm -lxcb -lxcb-icccm -lxcb-ewmh -lxcb-randr
 
@@ -29,15 +29,15 @@ INSTALLDIR= ${INSTALL} -d
 INSTALLBIN= ${INSTALL} -m 555
 INSTALLMAN= ${INSTALL} -m 444
 
-SRCS= lswm.c lswm.h 
-OBJS= lswm.o
+SRCS= log.c wrapper-lib.c lswm.c lswm.h 
+OBJS= log.o wrapper-lib.o lswm.o
 .c.o:
-				${CC} ${CPPFLAGS} ${CFLAGS} -c -o $@ $<
+	${CC} ${CPPFLAGS} ${CFLAGS} -c -o $@ $<
 
-all:			lswm
+all:	lswm
 
-lswm:			${OBJS}
-				${CC} ${LDFLAGS} -o lswm ${OBJS} ${LIBS}
+lswm:	${OBJS}
+	${CC} ${LDFLAGS} -o lswm ${OBJS} ${LIBS}
 
 clean:
-				rm -f *.o core lswm
+	rm -f *.o *.log core lswm
