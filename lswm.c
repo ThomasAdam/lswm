@@ -17,15 +17,20 @@
 #include <stdio.h>
 #include <stdbool.h>
 #include <stdlib.h>
+#include <string.h>
 #include <unistd.h>
+#include <ctype.h>
+#include <limits.h>
+#include <errno.h>
 #include "lswm.h"
 
 static void	 print_usage(void);
+static void	 set_display(const char *);
 
 int main(int argc, char **argv)
 {
 	int	 opt;
-	char	*display;
+	char	*display_opt = NULL;
 
 	while ((opt = getopt(argc, argv, "Vd:vf:")) != -1) {
 		switch (opt) {
@@ -36,10 +41,7 @@ int main(int argc, char **argv)
 			break;
 		/* Set the DISPLAY we intend to use; overrides environment. */
 		case 'd':
-			xasprintf(&display, ":%d", atoi(optarg));
-			setenv("DISPLAY", display, 1);
-			log_msg("Set DISPLAY as: '%s'\n", getenv("DISPLAY"));
-			free(display);
+			display_opt = strdup(optarg);
 			break;
 		case 'v':
 			log_level++;
@@ -55,13 +57,52 @@ int main(int argc, char **argv)
 	argc -= optind;
 	argv += optind;
 
+	if (log_level > 0)
+		log_file();
+
+	if (display_opt != NULL) {
+		set_display(display_opt);
+		free(display_opt);
+	}
+
 	dpy = xcb_connect(NULL, &default_screen);
 	if (xcb_connection_has_error(dpy)) {
 		log_fatal("Couldn't open display '%s'\n", getenv("DISPLAY"));
 		return (1);
 	}
 
+	log_close();
+
 	return (0);
+}
+
+static void
+set_display(const char *dsp)
+{
+	char		*dpy_str;
+	const char	*err_str;
+
+	errno = 0;
+
+	if (dsp == NULL)
+		log_fatal("DISPLAY is NULL");
+
+	/* We suppose the highest value DISPLAY can ever be is INT_MAX.
+	 * Likely safe for now at any rate!
+	 */
+	xasprintf(&dpy_str, ":%d", strtonum(dsp, 0, INT_MAX, &err_str));
+
+	if (err_str != NULL) {
+		log_fatal("Couldn't convert %s to num - %s",
+		    dsp, err_str);
+	}
+
+	if (setenv("DISPLAY", dpy_str, 1) == -1) {
+		free((char *)dsp);
+		free(dpy_str);
+		log_fatal("Couldn't update DISPLAY because: %s",
+		    strerror(errno));
+	}
 }
 
 static void

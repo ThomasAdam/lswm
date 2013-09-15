@@ -26,6 +26,10 @@
 #define VERSION		"0.1"
 #define VER_STR		PROGNAME " " VERSION
 
+#ifdef NO_STRTONUM
+   long long strtonum(const char *, long long, long long, const char **);
+#endif
+
 struct geometry {
 	/* Actual geometry coordinates. */
 	int	 x;
