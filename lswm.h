@@ -23,7 +23,8 @@
 #include <xcb/xcb_ewmh.h>
 
 #define PROGNAME	"lswm"
-#define VERSION		0.1
+#define VERSION		"0.1"
+#define VER_STR		PROGNAME " " VERSION
 
 struct geometry {
 	/* Actual geometry coordinates. */
