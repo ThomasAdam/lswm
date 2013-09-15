@@ -36,7 +36,7 @@ struct geometry {
 	int	 y;
 	int	 w;
 	int	 h;
-	
+
 	/* The window's border width */
 	int	 bw;
 
