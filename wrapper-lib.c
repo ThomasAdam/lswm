@@ -57,3 +57,21 @@ xmalloc(size_t s)
 
 	return (mem);
 }
+
+/* Wrapper for s[n]printf */
+int
+xsprintf(char *out, const char *fmt, ...)
+{
+	va_list	 ap;
+	int	 i;
+
+	va_start(ap, fmt);
+	i = sprintf(out, fmt, ap);
+
+	if (i == -1)
+		log_fatal("sprintf failed.");
+
+	va_end(ap);
+
+	return (i);
+}

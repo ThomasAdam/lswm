@@ -64,6 +64,7 @@ void    log_msg(const char *, ...);
 void    log_fatal(const char *, ...);
 
 /* wrapper-lib.c */
-int     xasprintf(char **, const char *, ...);
-void   *xmalloc(size_t);
+int      xasprintf(char **, const char *, ...);
+void	*xmalloc(size_t);
+int	 xsprintf(char *, const char *, ...);
 #endif
