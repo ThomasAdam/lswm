@@ -100,4 +100,7 @@ log_fatal(const char *fmt, ...)
 	va_end(vl);
 
 	free(msg);
+	log_close();
+
+	exit(1);
 }
