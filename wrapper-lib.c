@@ -31,7 +31,7 @@ xasprintf(char **out, const char *fmt, ...)
 	int	 i;
 
 	va_start(ap, fmt);
-	i = asprintf(out, fmt, ap);
+	i = vasprintf(out, fmt, ap);
 
 	if (i == -1) {
 		/* Then there were problems allocating memory. */
