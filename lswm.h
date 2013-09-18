@@ -30,12 +30,16 @@
    long long strtonum(const char *, long long, long long, const char **);
 #endif
 
-struct geometry {
-	/* Actual geometry coordinates. */
+struct rectangle {
 	int	 x;
 	int	 y;
 	int	 w;
 	int	 h;
+};
+
+struct geometry {
+	/* Actual geometry coordinates. */
+	struct rectangle	 coords;
 
 	/* The window's border width */
 	int	 bw;
@@ -55,7 +59,9 @@ struct geometry {
 
 struct ewmh;
 struct client;
-struct monitor;
+struct monitor {
+	struct rectangle	 size;
+};
 
 xcb_connection_t	*dpy;
 int			 default_screen;
