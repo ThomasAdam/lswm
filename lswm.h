@@ -64,6 +64,7 @@ struct monitor {
 };
 
 xcb_connection_t	*dpy;
+xcb_screen_t		*current_screen;
 int			 default_screen;
 int                     log_level;
 

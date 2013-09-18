@@ -29,8 +29,9 @@ static void	 set_display(const char *);
 
 int main(int argc, char **argv)
 {
-	int	 opt;
-	char	*display_opt = NULL;
+	int			 opt;
+	char			*display_opt = NULL;
+	xcb_screen_iterator_t	 iter;
 
 	while ((opt = getopt(argc, argv, "Vd:vf:")) != -1) {
 		switch (opt) {
@@ -57,6 +58,8 @@ int main(int argc, char **argv)
 	argc -= optind;
 	argv += optind;
 
+	current_screen = NULL;
+
 	if (log_level > 0)
 		log_file();
 
@@ -69,6 +72,15 @@ int main(int argc, char **argv)
 	if (xcb_connection_has_error(dpy)) {
 		log_fatal("Couldn't open display '%s'\n", getenv("DISPLAY"));
 		return (1);
+	}
+
+	/* Get the current screen. */
+	iter = xcb_setup_roots_iterator(xcb_get_setup(dpy));
+	for (; iter.rem; --default_screen, xcb_screen_next(&iter)) {
+		if (default_screen == 0) {
+			current_screen = iter.data;
+			break;
+		}
 	}
 
 	log_close();
