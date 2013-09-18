@@ -83,6 +83,8 @@ int main(int argc, char **argv)
 		}
 	}
 
+	randr_maybe_init();
+
 	log_close();
 
 	return (0);

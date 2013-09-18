@@ -17,10 +17,12 @@
 #ifndef _LSWM__H_
 #define _LSWM__H_
 
+#include <stdbool.h>
 #include <xcb/xcb.h>
 #include <xcb/xcb_event.h>
 #include <xcb/randr.h>
 #include <xcb/xcb_ewmh.h>
+#include "compat/queue.h"
 
 #define PROGNAME	"lswm"
 #define VERSION		"0.1"
@@ -60,8 +62,13 @@ struct geometry {
 struct ewmh;
 struct client;
 struct monitor {
+	const char		*name;
+	xcb_randr_output_t	 id;
 	struct rectangle	 size;
+
+	TAILQ_ENTRY(monitor)	 entry;
 };
+TAILQ_HEAD(monitors, monitor);
 
 xcb_connection_t	*dpy;
 xcb_screen_t		*current_screen;
@@ -78,4 +85,7 @@ void    log_fatal(const char *, ...);
 int      xasprintf(char **, const char *, ...);
 void	*xmalloc(size_t);
 int	 xsprintf(char *, const char *, ...);
+
+/* randr.c */
+void	 randr_maybe_init(void);
 #endif
