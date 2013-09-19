@@ -60,7 +60,7 @@ randr_maybe_init(void)
 	return;
 
 single_screen:
-	log_fatal("Needs implementing!");
+	log_fatal("RandR:  Single screen found; needs implementing!");
 }
 
 static struct monitor*
