@@ -22,9 +22,8 @@
 #include "lswm.h"
 
 static void randr_create_outputs(xcb_randr_output_t *, int, xcb_timestamp_t);
-static struct monitor	*monitor_create_randr_monitor(xcb_randr_output_t, 
-					xcb_randr_get_crtc_info_reply_t *,
-					const char *);
+static struct monitor	*monitor_create_randr_monitor(xcb_randr_output_t *, 
+					struct rectange, const char *);
 static struct monitor	*monitor_find_by_id(xcb_randr_output_t);
 static struct monitor	*monitor_find_by_name(const char *);
 
@@ -64,8 +63,7 @@ single_screen:
 }
 
 static struct monitor*
-monitor_create_randr_monitor(xcb_randr_output_t id,
-			     xcb_randr_get_crtc_info_reply_t *info,
+monitor_create_randr_monitor(xcb_randr_output_t *id, struct rectangle info,
 			     const char *name)
 {
 	struct monitor	*new;
@@ -75,10 +73,7 @@ monitor_create_randr_monitor(xcb_randr_output_t id,
 
 	new->id = id;
 	new->name = strdup(name);
-	new->size.x = info->x;
-	new->size.y = info->y;
-	new->size.w = info->width;
-	new->size.h = info->height;
+	memcpy(&new->size, &info, sizeof(struct rectangle));
 
 	/* TODO: Add to monitor queue. */
 
@@ -93,6 +88,7 @@ static void
 randr_create_outputs(xcb_randr_output_t *outputs, int len,
 		     xcb_timestamp_t timestamp)
 {
+	struct rectangle			 size;
 	char					*name;
 	xcb_randr_get_crtc_info_cookie_t	 crtc_info_ck;
 	xcb_randr_get_crtc_info_reply_t		*crtc = NULL;
@@ -144,6 +140,11 @@ randr_create_outputs(xcb_randr_output_t *outputs, int len,
 
 		log_msg("RandR:  CRTC: at %d, %d, size: %dx%d",
 			crtc->x, crtc->y, crtc->width, crtc->height);
+
+		size.x = crtc->x;
+		size.y = crtc->y;
+		size.w = crtc->width;
+		size.h = crtc->height;
 
 		free(output);
 	}
