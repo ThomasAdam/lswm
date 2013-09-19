@@ -57,6 +57,8 @@ randr_maybe_init(void)
 		randr_create_outputs(outputs, len, res->config_timestamp);
 	free(res);
 
+	return;
+
 single_screen:
 	log_fatal("Needs implementing!");
 }
