@@ -101,6 +101,7 @@ randr_create_outputs(xcb_randr_output_t *outputs, int len,
 		     xcb_timestamp_t timestamp)
 {
 	struct rectangle			 size;
+	struct monitor				*m;
 	char					*name;
 	xcb_randr_get_crtc_info_cookie_t	 crtc_info_ck;
 	xcb_randr_get_crtc_info_reply_t		*crtc = NULL;
@@ -158,8 +159,14 @@ randr_create_outputs(xcb_randr_output_t *outputs, int len,
 		/*
 		 * XXX: Check for duplicates, reset sizes, etc. before adding.
 		 */
-		if (monitor_find_duplicate(outputs[i], name) != NULL)
+		if ((m = monitor_find_duplicate(outputs[i], name)) == NULL)
 			monitor_create_randr_monitor(&outputs[i], size, name);
+		else {
+			m->size.x = size.x;
+			m->size.y = size.y;
+			m->size.w = size.w;
+			m->size.h = size.h;
+		}
 
 		free(name);
 		free(output);
@@ -202,17 +209,15 @@ monitor_find_duplicate(xcb_randr_output_t id, const char *name)
 		if (m2 == NULL)
 			continue;
 
-		if ((m_find = monitor_find_by_id(id)) == NULL) {
-			if ((m_find = monitor_find_by_name(name)) == NULL)
+		if ((m_find = monitor_find_by_id(id)) == NULL ||
+		    ((m_find = monitor_find_by_name(name)) == NULL))
 				continue;
-		}
-
-		if (strcmp(m_find->name, name) == 0)
-			continue;
 
 		/* XXX: Update sizes?  Or return true. ??? */
 		log_msg("Found a duplicate: %s -> %s", m2->name,
 			m_find->name);
+
+		return (m2);
 	}
 
 	return (NULL);
