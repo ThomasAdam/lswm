@@ -59,6 +59,7 @@ int main(int argc, char **argv)
 	argv += optind;
 
 	current_screen = NULL;
+	TAILQ_INIT(&monitor_q);
 
 	if (log_level > 0)
 		log_file();

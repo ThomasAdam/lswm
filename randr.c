@@ -16,20 +16,24 @@
 
 /* Routines for handling XRandR extensions. */
 
+#include <stdio.h>
 #include <time.h>
 #include <string.h>
 #include <xcb/randr.h>
 #include "lswm.h"
 
 static void randr_create_outputs(xcb_randr_output_t *, int, xcb_timestamp_t);
-static struct monitor	*monitor_create_randr_monitor(xcb_randr_output_t *, 
-					struct rectange, const char *);
+static void		 monitor_create_randr_monitor(xcb_randr_output_t *,
+				struct rectangle, const char *);
 static struct monitor	*monitor_find_by_id(xcb_randr_output_t);
 static struct monitor	*monitor_find_by_name(const char *);
+static struct monitor	*monitor_find_duplicate(xcb_randr_output_t,
+				const char *);
 
 void
 randr_maybe_init(void)
 {
+	struct rectangle				 size;
 	xcb_randr_get_screen_resources_current_reply_t	*res;
 	xcb_randr_output_t				*outputs;
 	xcb_randr_get_screen_resources_current_cookie_t	 res_ck;
@@ -59,10 +63,16 @@ randr_maybe_init(void)
 	return;
 
 single_screen:
-	log_fatal("RandR:  Single screen found; needs implementing!");
+	/* Use the root window. */
+	size.x = 0;
+	size.y = 0;
+	size.w = current_screen->width_in_pixels;
+	size.h = current_screen->height_in_pixels;
+
+	monitor_create_randr_monitor(NULL, size, "monitor");
 }
 
-static struct monitor*
+static void
 monitor_create_randr_monitor(xcb_randr_output_t *id, struct rectangle info,
 			     const char *name)
 {
@@ -71,13 +81,15 @@ monitor_create_randr_monitor(xcb_randr_output_t *id, struct rectangle info,
 	new = xmalloc(sizeof *new);
 	memset(new, 0, sizeof *new);
 
-	new->id = id;
+	new->id = (id == NULL) ? XCB_NONE : *id;
 	new->name = strdup(name);
 	memcpy(&new->size, &info, sizeof(struct rectangle));
 
 	/* TODO: Add to monitor queue. */
-
-	return (new);
+	if (TAILQ_EMPTY(&monitor_q))
+		TAILQ_INSERT_HEAD(&monitor_q, new, entry);
+	else
+		TAILQ_INSERT_TAIL(&monitor_q, new, entry);
 }
 
 /*
@@ -103,7 +115,7 @@ randr_create_outputs(xcb_randr_output_t *outputs, int len,
 	}
 
 	/* Loop through all outputs. */
-	for (i = 0; i < len; i ++)
+	for (i = 0; i < len; i++)
 	{
 		output = xcb_randr_get_output_info_reply(dpy, info_ck[i], NULL);
 
@@ -135,9 +147,6 @@ randr_create_outputs(xcb_randr_output_t *outputs, int len,
 		if (crtc == NULL)
 			return;
 
-		if (crtc->x == 0 && crtc->y == 0)
-			continue;
-
 		log_msg("RandR:  CRTC: at %d, %d, size: %dx%d",
 			crtc->x, crtc->y, crtc->width, crtc->height);
 
@@ -146,7 +155,65 @@ randr_create_outputs(xcb_randr_output_t *outputs, int len,
 		size.w = crtc->width;
 		size.h = crtc->height;
 
+		/*
+		 * XXX: Check for duplicates, reset sizes, etc. before adding.
+		 */
+		if (monitor_find_duplicate(outputs[i], name) != NULL)
+			monitor_create_randr_monitor(&outputs[i], size, name);
+
+		free(name);
 		free(output);
 	}
+
 }
 
+static struct monitor *
+monitor_find_by_id(xcb_randr_output_t id)
+{
+	struct monitor	*mon;
+
+	TAILQ_FOREACH(mon, &monitor_q, entry) {
+		if (mon->id == id)
+			break;
+	}
+
+	return (mon);
+}
+
+static struct monitor *
+monitor_find_by_name(const char *name)
+{
+	struct monitor	*mon;
+
+	TAILQ_FOREACH(mon, &monitor_q, entry) {
+		if (strcmp(mon->name, name) == 0)
+			break;
+	}
+
+	return (mon);
+}
+
+static struct monitor *
+monitor_find_duplicate(xcb_randr_output_t id, const char *name)
+{
+	struct monitor	*m2, *m_find;
+
+	TAILQ_FOREACH(m2, &monitor_q, entry) {
+		if (m2 == NULL)
+			continue;
+
+		if ((m_find = monitor_find_by_id(id)) == NULL) {
+			if ((m_find = monitor_find_by_name(name)) == NULL)
+				continue;
+		}
+
+		if (strcmp(m_find->name, name) == 0)
+			continue;
+
+		/* XXX: Update sizes?  Or return true. ??? */
+		log_msg("Found a duplicate: %s -> %s", m2->name,
+			m_find->name);
+	}
+
+	return (NULL);
+}

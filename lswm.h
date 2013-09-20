@@ -70,6 +70,8 @@ struct monitor {
 };
 TAILQ_HEAD(monitors, monitor);
 
+struct monitors		 monitor_q;
+
 xcb_connection_t	*dpy;
 xcb_screen_t		*current_screen;
 int			 default_screen;
