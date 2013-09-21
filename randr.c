@@ -102,6 +102,8 @@ monitor_create_randr_monitor(xcb_randr_output_t *id, struct rectangle info,
 	new = xmalloc(sizeof *new);
 	memset(new, 0, sizeof *new);
 
+	TAILQ_INIT(&new->desktops_q);
+
 	new->id = (id == NULL) ? XCB_NONE : *id;
 	new->name = strdup(name);
 	new->changed = false;

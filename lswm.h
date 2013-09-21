@@ -109,4 +109,11 @@ int	 xsprintf(char *, const char *, ...);
 
 /* randr.c */
 void	 randr_maybe_init(void);
+
+/* desktop.c */
+void		 desktop_setup(struct monitor *, const char *);
+struct desktop	*desktop_create(void);
+void		 add_desktop_to_monitor(struct monitor *, struct desktop *);
+void		 desktop_set_name(struct desktop *, const char *);
+
 #endif
