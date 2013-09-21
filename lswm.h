@@ -17,10 +17,12 @@
 #ifndef _LSWM__H_
 #define _LSWM__H_
 
+#include <stdbool.h>
 #include <xcb/xcb.h>
 #include <xcb/xcb_event.h>
 #include <xcb/randr.h>
 #include <xcb/xcb_ewmh.h>
+#include "compat/queue.h"
 
 #define PROGNAME	"lswm"
 #define VERSION		"0.1"
@@ -30,12 +32,16 @@
    long long strtonum(const char *, long long, long long, const char **);
 #endif
 
-struct geometry {
-	/* Actual geometry coordinates. */
+struct rectangle {
 	int	 x;
 	int	 y;
 	int	 w;
 	int	 h;
+};
+
+struct geometry {
+	/* Actual geometry coordinates. */
+	struct rectangle	 coords;
 
 	/* The window's border width */
 	int	 bw;
@@ -55,11 +61,23 @@ struct geometry {
 
 struct ewmh;
 struct client;
-struct monitor;
+struct monitor {
+	const char		*name;
+	xcb_randr_output_t	 id;
+	struct rectangle	 size;
+	bool			 changed;
+
+	TAILQ_ENTRY(monitor)	 entry;
+};
+TAILQ_HEAD(monitors, monitor);
+
+struct monitors		 monitor_q;
 
 xcb_connection_t	*dpy;
+xcb_screen_t		*current_screen;
 int			 default_screen;
-int                     log_level;
+int                      log_level;
+int			 randr_start;
 
 /* log.c */
 void    log_file(void);
@@ -71,4 +89,7 @@ void    log_fatal(const char *, ...);
 int      xasprintf(char **, const char *, ...);
 void	*xmalloc(size_t);
 int	 xsprintf(char *, const char *, ...);
+
+/* randr.c */
+void	 randr_maybe_init(void);
 #endif
