@@ -27,11 +27,15 @@
 static void	 print_usage(void);
 static void	 set_display(const char *);
 
+#define NO_OF_DESKTOPS 10
+
 int main(int argc, char **argv)
 {
-	int			 opt;
+	int			 opt, i;
 	char			*display_opt = NULL;
 	xcb_screen_iterator_t	 iter;
+	struct monitor		*m;
+	char			*name;
 
 	while ((opt = getopt(argc, argv, "Vd:vf:")) != -1) {
 		switch (opt) {
@@ -86,7 +90,17 @@ int main(int argc, char **argv)
 
 	randr_maybe_init();
 
+	TAILQ_FOREACH(m, &monitor_q, entry) {
+		for (i = 0; i < NO_OF_DESKTOPS; i++) {
+			xasprintf(&name, "%s:%d", m->name, i);
+			desktop_setup(m, name);
+			free(name);
+		}
+	}
+
 	log_close();
+
+	xcb_disconnect(dpy);
 
 	return (0);
 }
