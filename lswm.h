@@ -65,6 +65,7 @@ struct monitor {
 	const char		*name;
 	xcb_randr_output_t	 id;
 	struct rectangle	 size;
+	bool			 changed;
 
 	TAILQ_ENTRY(monitor)	 entry;
 };
@@ -75,7 +76,8 @@ struct monitors		 monitor_q;
 xcb_connection_t	*dpy;
 xcb_screen_t		*current_screen;
 int			 default_screen;
-int                     log_level;
+int                      log_level;
+int			 randr_start;
 
 /* log.c */
 void    log_file(void);

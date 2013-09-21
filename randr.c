@@ -37,13 +37,21 @@ randr_maybe_init(void)
 	xcb_randr_get_screen_resources_current_reply_t	*res;
 	xcb_randr_output_t				*outputs;
 	xcb_randr_get_screen_resources_current_cookie_t	 res_ck;
+	const xcb_query_extension_reply_t		*ext;
 	int						 len;
+
+	/* Check to see if we have an RandR extension defined, and if not,
+	 * assume a single screen.  Note that not acquiring screen resource,
+	 * even if RandR present is also a failing, and we assume a single
+	 * screen also.
+	 */
+	ext = xcb_get_extension_data(dpy, &xcb_randr_id);
 
 	res_ck = xcb_randr_get_screen_resources_current(dpy,
 			current_screen->root);
 	res = xcb_randr_get_screen_resources_current_reply(dpy, res_ck, NULL);
 
-	if (res == NULL)
+	if (res == NULL || !ext->present)
 	{
 		log_msg("No RANDR extension available.  "
 			"Falling back to single screen.");
@@ -59,6 +67,19 @@ randr_maybe_init(void)
 	if (len > 0)
 		randr_create_outputs(outputs, len, res->config_timestamp);
 	free(res);
+
+	/* If we end up here, then we should select for RandR events on the
+	 * root window and react accordingly.
+	 */
+	randr_start = ext->first_event;
+	log_msg("RandR:  randr_start is %d", randr_start);
+
+	xcb_randr_select_input(dpy, current_screen->root,
+			XCB_RANDR_NOTIFY_MASK_CRTC_CHANGE |
+			XCB_RANDR_NOTIFY_MASK_OUTPUT_CHANGE |
+			XCB_RANDR_NOTIFY_MASK_SCREEN_CHANGE |
+			XCB_RANDR_NOTIFY_MASK_OUTPUT_PROPERTY);
+	xcb_flush(dpy);
 
 	return;
 
@@ -83,9 +104,9 @@ monitor_create_randr_monitor(xcb_randr_output_t *id, struct rectangle info,
 
 	new->id = (id == NULL) ? XCB_NONE : *id;
 	new->name = strdup(name);
+	new->changed = false;
 	memcpy(&new->size, &info, sizeof(struct rectangle));
 
-	/* TODO: Add to monitor queue. */
 	if (TAILQ_EMPTY(&monitor_q))
 		TAILQ_INSERT_HEAD(&monitor_q, new, entry);
 	else
@@ -156,9 +177,6 @@ randr_create_outputs(xcb_randr_output_t *outputs, int len,
 		size.w = crtc->width;
 		size.h = crtc->height;
 
-		/*
-		 * XXX: Check for duplicates, reset sizes, etc. before adding.
-		 */
 		if ((m = monitor_find_duplicate(outputs[i], name)) == NULL)
 			monitor_create_randr_monitor(&outputs[i], size, name);
 		else {
@@ -166,6 +184,8 @@ randr_create_outputs(xcb_randr_output_t *outputs, int len,
 			m->size.y = size.y;
 			m->size.w = size.w;
 			m->size.h = size.h;
+
+			m->changed = true;
 		}
 
 		free(name);
@@ -213,7 +233,6 @@ monitor_find_duplicate(xcb_randr_output_t id, const char *name)
 		    ((m_find = monitor_find_by_name(name)) == NULL))
 				continue;
 
-		/* XXX: Update sizes?  Or return true. ??? */
 		log_msg("Found a duplicate: %s -> %s", m2->name,
 			m_find->name);
 
