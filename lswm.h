@@ -60,12 +60,29 @@ struct geometry {
 };
 
 struct ewmh;
+
 struct client;
+
+struct desktop {
+	/* The name of thie desktop. */
+	char			*name;
+
+	/* Next entry in the list. */
+	TAILQ_ENTRY(desktop)	 entry;
+};
+TAILQ_HEAD(desktops, desktop);
+
 struct monitor {
 	const char		*name;
 	xcb_randr_output_t	 id;
 	struct rectangle	 size;
 	bool			 changed;
+
+	/* The active desktop; the one currently displayed. */
+	struct desktop		*active;
+
+	/* The list of all desktops on this monitor. */
+	struct desktops		 desktops_q;
 
 	TAILQ_ENTRY(monitor)	 entry;
 };

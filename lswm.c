@@ -85,6 +85,7 @@ int main(int argc, char **argv)
 	}
 
 	randr_maybe_init();
+	//desktops_setup();
 
 	log_close();
 
