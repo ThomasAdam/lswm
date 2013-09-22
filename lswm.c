@@ -62,6 +62,8 @@ int main(int argc, char **argv)
 	argc -= optind;
 	argv += optind;
 
+	/* XXX - check whether we can run or not (SubstructureRedirect) */
+
 	current_screen = NULL;
 	TAILQ_INIT(&monitor_q);
 
@@ -89,6 +91,7 @@ int main(int argc, char **argv)
 	}
 
 	randr_maybe_init();
+	ewmh_init();
 
 	TAILQ_FOREACH(m, &monitor_q, entry) {
 		for (i = 0; i < NO_OF_DESKTOPS; i++) {
@@ -97,6 +100,8 @@ int main(int argc, char **argv)
 			free(name);
 		}
 	}
+
+	client_scan_windows();
 
 	log_close();
 

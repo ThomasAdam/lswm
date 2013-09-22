@@ -28,6 +28,10 @@
 #define VERSION		"0.1"
 #define VER_STR		PROGNAME " " VERSION
 
+#ifndef nitems
+#define nitems(n) (sizeof(n) / sizeof((*n)))
+#endif
+
 #ifdef NO_STRTONUM
    long long strtonum(const char *, long long, long long, const char **);
 #endif
@@ -59,9 +63,20 @@ struct geometry {
 	} hints;
 };
 
-struct ewmh;
+struct client {
+	xcb_window_t	 	 win;
 
-struct client;
+	enum {
+		NORMAL = 0,
+		MAXIMISED,
+		MAXIMISED_VERT,
+		MAXIMISED_HORIZ,
+		FULLSCREEN
+	} state;
+
+	TAILQ_ENTRY(client)	 entry;
+};
+TAILQ_HEAD(clients, client);
 
 struct desktop {
 	/* The name of thie desktop. */
@@ -115,5 +130,15 @@ void		 desktop_setup(struct monitor *, const char *);
 struct desktop	*desktop_create(void);
 void		 add_desktop_to_monitor(struct monitor *, struct desktop *);
 void		 desktop_set_name(struct desktop *, const char *);
+inline int	 desktop_count_all_desktops(void);
+
+/* client.c */
+void	 	 client_scan_windows(void);
+struct client	*client_create(xcb_window_t);
+
+/* ewmh.c */
+void	 ewmh_init(void);
+void	 ewmh_set_active_window(void);
+void	 ewmh_set_no_of_desktops(void);
 
 #endif

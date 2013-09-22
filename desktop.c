@@ -67,3 +67,20 @@ desktop_setup(struct monitor *m, const char *name)
 	desktop_set_name(d, name);
 	add_desktop_to_monitor(m, d);
 }
+
+inline int
+desktop_count_all_desktop(void)
+{
+	struct monitor	*m;
+	struct desktop	*d;
+	int		 c;
+
+	c = 0;
+	TAILQ_FOREACH(m, &monitor_q, entry) {
+		TAILQ_FOREACH(d, &m->desktops_q, entry) {
+			c++;
+		}
+	}
+
+	return (c);
+}
