@@ -61,7 +61,10 @@ struct geometry {
 		int	 win_gravity_hint;
 		int	 win_gravity;
 	} hints;
+
+	TAILQ_ENTRY(geometry)	 entry;
 };
+TAILQ_HEAD(geometries, geometry);
 
 struct client {
 	xcb_window_t	 	 win;
@@ -73,6 +76,8 @@ struct client {
 		MAXIMISED_HORIZ,
 		FULLSCREEN
 	} state;
+
+	struct geometries	 geometries_q;
 
 	TAILQ_ENTRY(client)	 entry;
 };

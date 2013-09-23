@@ -27,7 +27,7 @@ client_create(xcb_window_t win)
 	new = xmalloc(sizeof *new);
 	memset(new, 0, sizeof *new);
 
-	/* Init geometry queue here. */
+	TAILQ_INIT(&new->geometries_q);
 
 	new->win = win;	
 
