@@ -35,6 +35,13 @@ client_create(xcb_window_t win)
 }
 
 void
+client_manage_client(struct client *c)
+{
+	if (c == NULL)
+		log_fatal("Tried to manage a NULL client");
+}
+
+void
 client_scan_windows(void)
 {
 	xcb_query_tree_reply_t			*reply;
@@ -71,10 +78,12 @@ client_scan_windows(void)
 			if ((client = client_create(children[i])) == NULL)
 				log_fatal("Couldn't handle creating client");
 
+			client_manage_client(client);
+
 		}
 		log_msg("On first scan:  %d", children[i]);
 		free(attr);
 	}
-	xcb_flush(dpy);
 	free(reply);
+	xcb_flush(dpy);
 }

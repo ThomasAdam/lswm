@@ -69,7 +69,7 @@ desktop_setup(struct monitor *m, const char *name)
 }
 
 inline int
-desktop_count_all_desktop(void)
+desktop_count_all_desktops(void)
 {
 	struct monitor	*m;
 	struct desktop	*d;

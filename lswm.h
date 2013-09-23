@@ -140,6 +140,7 @@ inline int	 desktop_count_all_desktops(void);
 /* client.c */
 void	 	 client_scan_windows(void);
 struct client	*client_create(xcb_window_t);
+void		 client_manage_client(struct client *);
 
 /* ewmh.c */
 void	 ewmh_init(void);
