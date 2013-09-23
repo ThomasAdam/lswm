@@ -6,7 +6,7 @@ VERSION= 0.1
 DEBUG= 1
 
 CC?= cc
-CFLAGS+= -D_GNU_SOURCE -DBUILD="\"$(VERSION)\"" -DNO_STRTONUM
+CFLAGS+= -Wno-format-nonliteral -D_GNU_SOURCE -DBUILD="\"$(VERSION)\"" -DNO_STRTONUM
 #LDFLAGS+= -L/usr/local/lib
 LIBS+= -lm -lxcb -lxcb-icccm -lxcb-ewmh -lxcb-randr
 
