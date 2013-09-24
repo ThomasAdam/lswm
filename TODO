@@ -10,6 +10,7 @@ Rough idea for a window manager.
               that as and when updates occur.
         - Configuration:  defaults hard-coded, then overridden in config
           file.
+			- Perhaps using liblfg:  http://liblcfg.carnivore.it/
         - linking a window (read:  "sticky") should have separate
           geometry per workspace; when switching workspaces, the client's
           geometries are relocated.
