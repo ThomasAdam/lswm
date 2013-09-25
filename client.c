@@ -47,9 +47,9 @@ client_manage_client(struct client *c)
 		xcb_get_geometry(dpy, c->win), NULL);
 
 	if (geom_r == NULL)
-		log_fatal("Window '%d' has no geometry", c->win);
-	log_msg("Window '%d' has geom: %ux%u+%d+%d",
-		geom_r->width, geom_r->height, geom_r->x, geom_r->y);
+		log_fatal("Window '0x%x' has no geometry", c->win);
+	log_msg("Window '0x%x' has geom: %ux%u+%d+%d",
+		c->win, geom_r->width, geom_r->height, geom_r->x, geom_r->y);
 
 	free(geom_r);
 }
