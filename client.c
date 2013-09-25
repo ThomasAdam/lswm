@@ -19,6 +19,8 @@
 #include <string.h>
 #include "lswm.h"
 
+#define CONFIG_BW 4
+
 struct client *
 client_create(xcb_window_t win)
 {
@@ -29,7 +31,7 @@ client_create(xcb_window_t win)
 
 	TAILQ_INIT(&new->geometries_q);
 
-	new->win = win;	
+	new->win = win;
 
 	return (new);
 }
@@ -37,6 +39,8 @@ client_create(xcb_window_t win)
 void
 client_manage_client(struct client *c)
 {
+	struct geometry			 c_geom;
+	struct rectangle		 r;
 	xcb_get_geometry_reply_t	*geom_r;
 
 	if (c == NULL)
@@ -50,6 +54,27 @@ client_manage_client(struct client *c)
 		log_fatal("Window '0x%x' has no geometry", c->win);
 	log_msg("Window '0x%x' has geom: %ux%u+%d+%d",
 		c->win, geom_r->width, geom_r->height, geom_r->x, geom_r->y);
+
+	r.x = geom_r->x;
+	r.y = geom_r->y;
+	r.w = geom_r->width;
+	r.h = geom_r->height;
+
+	memcpy(&c_geom.coords, &r, sizeof(struct rectangle));
+	c_geom.bw = CONFIG_BW;
+
+	/* Add this to the set of geometries. */
+	if (TAILQ_EMPTY(&c->geometries_q))
+		TAILQ_INSERT_HEAD(&c->geometries_q, &c_geom, entry);
+	else
+		TAILQ_INSERT_TAIL(&c->geometries_q, &c_geom, entry);
+
+	/* Add the client to our list.  Its position will dictate which
+	 * desktop and hence monitor it is on.
+	 */
+	/* XXX: How do we handle clients destined for different
+	 * monitors/desks?
+	 */
 
 	free(geom_r);
 }
@@ -94,7 +119,6 @@ client_scan_windows(void)
 			client_manage_client(client);
 
 		}
-		log_msg("On first scan:  %d", children[i]);
 		free(attr);
 	}
 	free(reply);
