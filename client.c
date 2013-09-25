@@ -37,8 +37,21 @@ client_create(xcb_window_t win)
 void
 client_manage_client(struct client *c)
 {
+	xcb_get_geometry_reply_t	*geom_r;
+
 	if (c == NULL)
 		log_fatal("Tried to manage a NULL client");
+
+	/* Get the window's geometry. */
+	geom_r = xcb_get_geometry_reply(dpy,
+		xcb_get_geometry(dpy, c->win), NULL);
+
+	if (geom_r == NULL)
+		log_fatal("Window '%d' has no geometry", c->win);
+	log_msg("Window '%d' has geom: %ux%u+%d+%d",
+		geom_r->width, geom_r->height, geom_r->x, geom_r->y);
+
+	free(geom_r);
 }
 
 void
