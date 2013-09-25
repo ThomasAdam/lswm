@@ -128,7 +128,8 @@ void	*xmalloc(size_t);
 int	 xsprintf(char *, const char *, ...);
 
 /* randr.c */
-void	 randr_maybe_init(void);
+void		 randr_maybe_init(void);
+struct monitor	*monitor_at_xy(int, int);
 
 /* desktop.c */
 void		 desktop_setup(struct monitor *, const char *);
