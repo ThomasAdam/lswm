@@ -87,6 +87,9 @@ struct desktop {
 	/* The name of thie desktop. */
 	char			*name;
 
+	/* The list of clients on this desktop. */
+	struct clients		 clients_q;
+
 	/* Next entry in the list. */
 	TAILQ_ENTRY(desktop)	 entry;
 };
@@ -99,7 +102,7 @@ struct monitor {
 	bool			 changed;
 
 	/* The active desktop; the one currently displayed. */
-	struct desktop		*active;
+	struct desktop		*active_desktop;
 
 	/* The list of all desktops on this monitor. */
 	struct desktops		 desktops_q;

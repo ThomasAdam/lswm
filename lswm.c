@@ -103,6 +103,21 @@ int main(int argc, char **argv)
 
 	client_scan_windows();
 
+	/* Go over all monitors, print the active desktop, and any clients
+	 * which are on them.
+	 */
+	TAILQ_FOREACH(m, &monitor_q, entry) {
+		struct desktop *d;
+		log_msg("M: %s", m->name);
+		TAILQ_FOREACH(d, &m->desktops_q, entry) {
+			struct client *c;
+			log_msg("\tD: %s", d->name);
+			TAILQ_FOREACH(c, &d->clients_q, entry) {
+				log_msg("\t\tC: I have window: 0x%x", c->win);
+			}
+		}
+	}
+
 	log_close();
 
 	xcb_disconnect(dpy);

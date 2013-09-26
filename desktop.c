@@ -27,6 +27,8 @@ desktop_create(void)
 	d = xmalloc(sizeof *d);
 	memset(d, 0, sizeof *d);
 
+	TAILQ_INIT(&d->clients_q);
+
 	d->name = NULL;
 
 	return (d);

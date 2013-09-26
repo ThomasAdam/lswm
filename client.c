@@ -41,6 +41,7 @@ client_manage_client(struct client *c)
 {
 	struct geometry			 c_geom;
 	struct rectangle		 r;
+	struct monitor			*m;
 	xcb_get_geometry_reply_t	*geom_r;
 
 	if (c == NULL)
@@ -63,6 +64,8 @@ client_manage_client(struct client *c)
 	memcpy(&c_geom.coords, &r, sizeof(struct rectangle));
 	c_geom.bw = CONFIG_BW;
 
+	free(geom_r);
+
 	/* Add this to the set of geometries. */
 	if (TAILQ_EMPTY(&c->geometries_q))
 		TAILQ_INSERT_HEAD(&c->geometries_q, &c_geom, entry);
@@ -72,11 +75,20 @@ client_manage_client(struct client *c)
 	/* Add the client to our list.  Its position will dictate which
 	 * desktop and hence monitor it is on.
 	 */
-	/* XXX: How do we handle clients destined for different
-	 * monitors/desks?
-	 */
+	if ((m = monitor_at_xy(r.x, r.y)) == NULL)
+		log_fatal("No monitor found at x: %d, y: %d", r.x, r.y);
 
-	free(geom_r);
+	/* XXX: How do we handle clients destined for different
+	 * monitors/desks?  For now, use the last active desktop.  Can use
+	 * _NET_WM_DESKTOP
+	 */
+	if (m->active_desktop == NULL)
+		m->active_desktop = TAILQ_FIRST(&m->desktops_q);
+
+	if (TAILQ_EMPTY(&m->active_desktop->clients_q))
+		TAILQ_INSERT_HEAD(&m->active_desktop->clients_q, c, entry);
+	else
+		TAILQ_INSERT_TAIL(&m->active_desktop->clients_q, c, entry);
 }
 
 void
