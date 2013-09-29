@@ -16,10 +16,9 @@
 
 /* Routines for handling clients. */
 
+#include <stdbool.h>
 #include <string.h>
 #include "lswm.h"
-
-#define CONFIG_BW 4
 
 struct client *
 client_create(xcb_window_t win)
@@ -37,7 +36,7 @@ client_create(xcb_window_t win)
 }
 
 void
-client_manage_client(struct client *c)
+client_manage_client(struct client *c, bool needs_map)
 {
 	struct geometry			 c_geom;
 	struct rectangle		 r;
@@ -89,13 +88,63 @@ client_manage_client(struct client *c)
 		TAILQ_INSERT_HEAD(&m->active_desktop->clients_q, c, entry);
 	else
 		TAILQ_INSERT_TAIL(&m->active_desktop->clients_q, c, entry);
+
+	/* Borders. */
+	client_set_bw(c, &c_geom);
+	client_set_border_colour(c, 0);
+}
+
+void
+client_set_bw(struct client *c, struct geometry *g)
+{
+	uint32_t values[1];
+	uint32_t mask = 0;
+
+	values[0] = g->bw;
+
+	mask |= XCB_CONFIG_WINDOW_BORDER_WIDTH;
+	xcb_configure_window(dpy, c->win, mask, &values[0]);
+	xcb_flush(dpy);
+}
+
+uint32_t client_get_colour(const char *colour)
+{
+	xcb_alloc_named_color_reply_t	*col_r;
+	xcb_colormap_t			 cmap;
+	xcb_generic_error_t		*error;
+	xcb_alloc_named_color_cookie_t	 col_ck;
+	uint32_t			 pixel;
+
+	cmap = current_screen->default_colormap;
+	col_ck = xcb_alloc_named_color(dpy, cmap, strlen(colour), colour);
+	col_r = xcb_alloc_named_color_reply(dpy, col_ck, &error);
+	if (error != NULL)
+		log_fatal("Couldn't get pixel value for colour %s", colour);
+
+	pixel = col_r->pixel;
+	free(col_r);
+
+	return (pixel);
+}
+
+void
+client_set_border_colour(struct client *c, int type)
+{
+	uint32_t	 values[1];
+
+	values[0] = type == FOCUS_BORDER                ?
+		client_get_colour(CONFIG_FOCUS_COLOUR)	:
+		client_get_colour(CONFIG_NFOCUS_COLOUR);
+
+	xcb_change_window_attributes(dpy, c->win, XCB_CW_BORDER_PIXEL,
+			             values);
 }
 
 void
 client_scan_windows(void)
 {
 	xcb_query_tree_reply_t			*reply;
-	xcb_get_window_attributes_reply_t 	*attr;
+	xcb_get_window_attributes_reply_t	*attr;
 	xcb_window_t				*children;
 	int					 i;
 	int					 len;
@@ -128,7 +177,7 @@ client_scan_windows(void)
 			if ((client = client_create(children[i])) == NULL)
 				log_fatal("Couldn't handle creating client");
 
-			client_manage_client(client);
+			client_manage_client(client, true);
 
 		}
 		free(attr);

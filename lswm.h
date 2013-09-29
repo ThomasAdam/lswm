@@ -23,6 +23,7 @@
 #include <xcb/randr.h>
 #include <xcb/xcb_ewmh.h>
 #include "compat/queue.h"
+#include "config.h"
 
 #define PROGNAME	"lswm"
 #define VERSION		"0.1"
@@ -35,6 +36,9 @@
 #ifdef NO_STRTONUM
    long long strtonum(const char *, long long, long long, const char **);
 #endif
+
+#define FOCUS_BORDER 0
+#define UNFOCUS_BORDER 1
 
 struct rectangle {
 	int	 x;
@@ -144,7 +148,13 @@ inline int	 desktop_count_all_desktops(void);
 /* client.c */
 void	 	 client_scan_windows(void);
 struct client	*client_create(xcb_window_t);
-void		 client_manage_client(struct client *);
+void		 client_manage_client(struct client *, bool);
+void		 client_set_bw(struct client *, struct geometry *);
+void		 client_set_border_colour(struct client *, int);
+uint32_t	 client_get_colour(const char *);
+
+/* event.c */
+
 
 /* ewmh.c */
 void	 ewmh_init(void);

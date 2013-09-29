@@ -29,7 +29,7 @@ INSTALLDIR= ${INSTALL} -d
 INSTALLBIN= ${INSTALL} -m 555
 INSTALLMAN= ${INSTALL} -m 444
 
-SRCS= client.c ewmh.c desktop.c randr.c log.c wrapper-lib.c lswm.c lswm.h compat/queue.h compat/strtonum.c
+SRCS= client.c ewmh.c desktop.c randr.c log.c wrapper-lib.c lswm.c config.h lswm.h compat/queue.h compat/strtonum.c
 OBJS= $(patsubst %.c,%.o,$(SRCS))
 .c.o:
 	${CC} ${CPPFLAGS} ${CFLAGS} -c -o $@ $<
