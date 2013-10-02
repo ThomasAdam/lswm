@@ -26,6 +26,7 @@
 
 static void	 print_usage(void);
 static void	 set_display(const char *);
+static int	 check_for_existing_wm(void);
 
 #define NO_OF_DESKTOPS 10
 
@@ -62,8 +63,6 @@ int main(int argc, char **argv)
 	argc -= optind;
 	argv += optind;
 
-	/* XXX - check whether we can run or not (SubstructureRedirect) */
-
 	current_screen = NULL;
 	TAILQ_INIT(&monitor_q);
 
@@ -89,6 +88,10 @@ int main(int argc, char **argv)
 			break;
 		}
 	}
+
+	/* Check to see if another WM is running, and bail if it is. */
+	if (check_for_existing_wm() != 0)
+		log_fatal("There's already a WM running");
 
 	randr_maybe_init();
 	ewmh_init();
@@ -152,6 +155,23 @@ set_display(const char *dsp)
 		log_fatal("Couldn't update DISPLAY because: %s",
 		    strerror(errno));
 	}
+}
+
+static int
+check_for_existing_wm(void)
+{
+	unsigned int		 values[1];
+	xcb_generic_error_t	*error;
+
+	values[0] = XCB_EVENT_MASK_SUBSTRUCTURE_NOTIFY |
+		    XCB_EVENT_MASK_SUBSTRUCTURE_REDIRECT;
+
+	error = xcb_request_check(dpy, xcb_change_window_attributes_checked(
+				dpy, current_screen->root, XCB_CW_EVENT_MASK,
+				values));
+	xcb_flush(dpy);
+
+	return (error == NULL) ? 1 : 0;
 }
 
 static void
