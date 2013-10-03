@@ -115,6 +115,10 @@ struct monitor {
 };
 TAILQ_HEAD(monitors, monitor);
 
+/* Bindings for key/mouse. */
+struct binding {
+};
+
 struct monitors		 monitor_q;
 
 xcb_connection_t	*dpy;

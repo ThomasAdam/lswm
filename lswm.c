@@ -171,7 +171,7 @@ check_for_existing_wm(void)
 				values));
 	xcb_flush(dpy);
 
-	return (error == NULL) ? 1 : 0;
+	return (error != NULL) ? 1 : 0;
 }
 
 static void
