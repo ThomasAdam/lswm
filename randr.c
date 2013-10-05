@@ -209,6 +209,25 @@ monitor_find_by_id(xcb_randr_output_t id)
 	return (mon);
 }
 
+/* Given x/y coordinates on a screen, find which monitor that position
+ * is contained within.
+ */
+struct monitor *
+monitor_at_xy(int x, int y)
+{
+	struct monitor		*m = NULL;
+	struct rectangle	 r;
+
+	TAILQ_FOREACH(m, &monitor_q, entry) {
+		r = m->size;
+
+		if ((x >= r.x && x <= r.x + r.w) &&
+		    (y >= r.y && y <= r.y + r.h))
+			break;
+	}
+	return (m);
+}
+
 static struct monitor *
 monitor_find_by_name(const char *name)
 {

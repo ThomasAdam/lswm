@@ -26,6 +26,7 @@
 
 static void	 print_usage(void);
 static void	 set_display(const char *);
+static int	 check_for_existing_wm(void);
 
 #define NO_OF_DESKTOPS 10
 
@@ -88,13 +89,35 @@ int main(int argc, char **argv)
 		}
 	}
 
+	/* Check to see if another WM is running, and bail if it is. */
+	if (check_for_existing_wm() != 0)
+		log_fatal("There's already a WM running");
+
 	randr_maybe_init();
+	ewmh_init();
 
 	TAILQ_FOREACH(m, &monitor_q, entry) {
 		for (i = 0; i < NO_OF_DESKTOPS; i++) {
 			xasprintf(&name, "%s:%d", m->name, i);
 			desktop_setup(m, name);
 			free(name);
+		}
+	}
+
+	client_scan_windows();
+
+	/* Go over all monitors, print the active desktop, and any clients
+	 * which are on them.
+	 */
+	TAILQ_FOREACH(m, &monitor_q, entry) {
+		struct desktop *d;
+		log_msg("M: %s", m->name);
+		TAILQ_FOREACH(d, &m->desktops_q, entry) {
+			struct client *c;
+			log_msg("\tD: %s", d->name);
+			TAILQ_FOREACH(c, &d->clients_q, entry) {
+				log_msg("\t\tC: I have window: 0x%x", c->win);
+			}
 		}
 	}
 
@@ -132,6 +155,23 @@ set_display(const char *dsp)
 		log_fatal("Couldn't update DISPLAY because: %s",
 		    strerror(errno));
 	}
+}
+
+static int
+check_for_existing_wm(void)
+{
+	unsigned int		 values[1];
+	xcb_generic_error_t	*error;
+
+	values[0] = XCB_EVENT_MASK_SUBSTRUCTURE_NOTIFY |
+		    XCB_EVENT_MASK_SUBSTRUCTURE_REDIRECT;
+
+	error = xcb_request_check(dpy, xcb_change_window_attributes_checked(
+				dpy, current_screen->root, XCB_CW_EVENT_MASK,
+				values));
+	xcb_flush(dpy);
+
+	return (error != NULL) ? 1 : 0;
 }
 
 static void

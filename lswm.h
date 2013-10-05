@@ -23,14 +23,22 @@
 #include <xcb/randr.h>
 #include <xcb/xcb_ewmh.h>
 #include "compat/queue.h"
+#include "config.h"
 
 #define PROGNAME	"lswm"
 #define VERSION		"0.1"
 #define VER_STR		PROGNAME " " VERSION
 
+#ifndef nitems
+#define nitems(n) (sizeof(n) / sizeof((*n)))
+#endif
+
 #ifdef NO_STRTONUM
    long long strtonum(const char *, long long, long long, const char **);
 #endif
+
+#define FOCUS_BORDER 0
+#define UNFOCUS_BORDER 1
 
 struct rectangle {
 	int	 x;
@@ -57,15 +65,34 @@ struct geometry {
 		int	 win_gravity_hint;
 		int	 win_gravity;
 	} hints;
+
+	TAILQ_ENTRY(geometry)	 entry;
 };
+TAILQ_HEAD(geometries, geometry);
 
-struct ewmh;
+struct client {
+	xcb_window_t	 	 win;
 
-struct client;
+	enum {
+		NORMAL = 0,
+		MAXIMISED,
+		MAXIMISED_VERT,
+		MAXIMISED_HORIZ,
+		FULLSCREEN
+	} state;
+
+	struct geometries	 geometries_q;
+
+	TAILQ_ENTRY(client)	 entry;
+};
+TAILQ_HEAD(clients, client);
 
 struct desktop {
 	/* The name of thie desktop. */
 	char			*name;
+
+	/* The list of clients on this desktop. */
+	struct clients		 clients_q;
 
 	/* Next entry in the list. */
 	TAILQ_ENTRY(desktop)	 entry;
@@ -79,7 +106,7 @@ struct monitor {
 	bool			 changed;
 
 	/* The active desktop; the one currently displayed. */
-	struct desktop		*active;
+	struct desktop		*active_desktop;
 
 	/* The list of all desktops on this monitor. */
 	struct desktops		 desktops_q;
@@ -87,6 +114,10 @@ struct monitor {
 	TAILQ_ENTRY(monitor)	 entry;
 };
 TAILQ_HEAD(monitors, monitor);
+
+/* Bindings for key/mouse. */
+struct binding {
+};
 
 struct monitors		 monitor_q;
 
@@ -108,12 +139,30 @@ void	*xmalloc(size_t);
 int	 xsprintf(char *, const char *, ...);
 
 /* randr.c */
-void	 randr_maybe_init(void);
+void		 randr_maybe_init(void);
+struct monitor	*monitor_at_xy(int, int);
 
 /* desktop.c */
 void		 desktop_setup(struct monitor *, const char *);
 struct desktop	*desktop_create(void);
 void		 add_desktop_to_monitor(struct monitor *, struct desktop *);
 void		 desktop_set_name(struct desktop *, const char *);
+inline int	 desktop_count_all_desktops(void);
+
+/* client.c */
+void	 	 client_scan_windows(void);
+struct client	*client_create(xcb_window_t);
+void		 client_manage_client(struct client *, bool);
+void		 client_set_bw(struct client *, struct geometry *);
+void		 client_set_border_colour(struct client *, int);
+uint32_t	 client_get_colour(const char *);
+
+/* event.c */
+
+
+/* ewmh.c */
+void	 ewmh_init(void);
+void	 ewmh_set_active_window(void);
+void	 ewmh_set_no_of_desktops(void);
 
 #endif
