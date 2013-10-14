@@ -40,6 +40,29 @@
 #define FOCUS_BORDER 0
 #define UNFOCUS_BORDER 1
 
+struct arg {
+	char	*key;
+	char	*value;
+
+	TAILQ_ENTRY(arg)	entry;
+};
+TAILQ_HEAD(args, arg);
+
+/* Information used to register commands lswm understands. */
+struct cmd {
+	/* The name of the command. */
+	const char	*name;
+
+	/* The arguments it accepts. */
+	const char	*args_template;
+
+	/* The queue of commands parsed for this command. */
+	struct args	 args_q;
+
+	/* The function to run. */
+	int		 (*exec)(void);
+};
+
 struct rectangle {
 	int	 x;
 	int	 y;
@@ -121,6 +144,9 @@ struct binding {
 
 struct monitors		 monitor_q;
 
+extern struct cmd	*cmd_table[];
+extern struct cmd	 cmd_rename;
+
 xcb_connection_t	*dpy;
 xcb_screen_t		*current_screen;
 int			 default_screen;
@@ -157,7 +183,8 @@ void		 client_set_bw(struct client *, struct geometry *);
 void		 client_set_border_colour(struct client *, int);
 uint32_t	 client_get_colour(const char *);
 
-/* event.c */
+/* cmd.c */
+struct cmd	*find_cmd(const char *);
 
 
 /* ewmh.c */
