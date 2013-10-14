@@ -14,11 +14,12 @@
  * OUT OF OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 
+/* Routines for generic command parsing. */
+
 #include "lswm.h"
 
 struct cmd	 cmd_rename;
 
-/* Routines for generic command parsing. */
 struct cmd	*cmd_table[] = {
 	&cmd_rename
 };
