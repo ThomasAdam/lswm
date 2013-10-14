@@ -16,10 +16,30 @@
 
 /* Routines for generic command parsing. */
 
+#include <string.h>
 #include "lswm.h"
 
 struct cmd	 cmd_rename;
 
 struct cmd	*cmd_table[] = {
-	&cmd_rename
+	&cmd_rename,
+	NULL
 };
+
+struct cmd *
+find_cmd(const char *cmd_name)
+{
+	struct cmd	**cmd_ent;
+	struct cmd	 *cmd_p;
+
+	cmd_ent = NULL;
+
+	for (cmd_ent = cmd_table; *cmd_ent != NULL; cmd_ent++) {
+		if (strcmp((*cmd_ent)->name, cmd_name) == 0) {
+			cmd_p = *cmd_ent;
+			break;
+		}
+	}
+
+	return (cmd_p);
+}
