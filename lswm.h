@@ -184,7 +184,8 @@ void		 client_set_border_colour(struct client *, int);
 uint32_t	 client_get_colour(const char *);
 
 /* cmd.c */
-struct cmd	*find_cmd(const char *);
+struct cmd	*cmd_find_cmd(const char *);
+int		 cmd_build_args(char ***, char **, int);
 
 
 /* ewmh.c */

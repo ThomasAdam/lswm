@@ -27,12 +27,13 @@ struct cmd	*cmd_table[] = {
 };
 
 struct cmd *
-find_cmd(const char *cmd_name)
+cmd_find_cmd(const char *cmd_name)
 {
-	struct cmd	**cmd_ent;
-	struct cmd	 *cmd_p;
+	struct cmd	**cmd_ent = NULL;
+	struct cmd	 *cmd_p = NULL;
 
-	cmd_ent = NULL;
+	if (cmd_name == NULL)
+		log_fatal("command name was NULL");
 
 	for (cmd_ent = cmd_table; *cmd_ent != NULL; cmd_ent++) {
 		if (strcmp((*cmd_ent)->name, cmd_name) == 0) {
@@ -42,4 +43,10 @@ find_cmd(const char *cmd_name)
 	}
 
 	return (cmd_p);
+}
+
+int
+cmd_build_args(char ***cmd_argv, char **argv, int argc)
+{
+	return (1);
 }
