@@ -6,7 +6,7 @@ VERSION= 0.1
 DEBUG= 1
 
 CC?= cc
-CFLAGS+= -Wno-format-nonliteral -D_GNU_SOURCE -DBUILD="\"$(VERSION)\"" -DNO_STRTONUM
+CFLAGS+= -Wno-format-nonliteral -D_GNU_SOURCE -DBUILD="\"$(VERSION)\"" -DNO_STRTONUM -DNO_STRLCPY -DNO_FGETLN
 #LDFLAGS+= -L/usr/local/lib
 LIBS+= -lm -lxcb -lxcb-icccm -lxcb-ewmh -lxcb-randr
 
@@ -29,7 +29,7 @@ INSTALLDIR= ${INSTALL} -d
 INSTALLBIN= ${INSTALL} -m 555
 INSTALLMAN= ${INSTALL} -m 444
 
-SRCS= cmd.c client.c ewmh.c desktop.c randr.c log.c wrapper-lib.c lswm.c config.h lswm.h compat/queue.h compat/strtonum.c
+SRCS= arguments.c cmd.c cmd-list.c cmd-resize.c cmd-bind.c cmd-queue.c cmd-string.c cfg.c client.c ewmh.c desktop.c randr.c log.c wrapper-lib.c lswm.c config.h array.h lswm.h compat/fgetln.c compat/queue.h compat/tree.h compat/strlcpy.c compat/strtonum.c
 OBJS= $(patsubst %.c,%.o,$(SRCS))
 .c.o:
 	${CC} ${CPPFLAGS} ${CFLAGS} -c -o $@ $<

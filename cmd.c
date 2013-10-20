@@ -19,18 +19,17 @@
 #include <string.h>
 #include "lswm.h"
 
-struct cmd	 cmd_rename;
-
-struct cmd	*cmd_table[] = {
-	&cmd_rename,
+struct cmd_entry	*cmd_table[] = {
+	&cmd_bindm,
+	&cmd_move,
 	NULL
 };
 
-struct cmd *
+struct cmd_entry *
 cmd_find_cmd(const char *cmd_name)
 {
-	struct cmd	**cmd_ent = NULL;
-	struct cmd	 *cmd_p = NULL;
+	struct cmd_entry	**cmd_ent = NULL;
+	struct cmd_entry	*cmd_p = NULL;
 
 	if (cmd_name == NULL)
 		log_fatal("command name was NULL");
@@ -45,8 +44,91 @@ cmd_find_cmd(const char *cmd_name)
 	return (cmd_p);
 }
 
-int
-cmd_build_args(char ***cmd_argv, char **argv, int argc)
+char **
+cmd_copy_argv(int argc, char *const *argv)
 {
-	return (1);
+	char	**new_argv;
+	int	  i;
+
+	if (argc == 0)
+		return (NULL);
+	new_argv = xcalloc(argc, sizeof *new_argv);
+	for (i = 0; i < argc; i++) {
+		if (argv[i] != NULL)
+			new_argv[i] = xstrdup(argv[i]);
+	}
+	return (new_argv);
 }
+
+void
+cmd_free_argv(int argc, char **argv)
+{
+	int	i;
+
+	if (argc == 0)
+		return;
+	for (i = 0; i < argc; i++)
+		free(argv[i]);
+	free(argv);
+}
+
+size_t
+cmd_print(struct cmd *cmd, char *buf, size_t len)
+{
+	size_t	off, used;
+
+	off = snprintf(buf, len, "%s ", cmd->entry->name);
+	if (off + 1 < len) {
+		used = args_print(cmd->args, buf + off, len - off - 1);
+		if (used == 0)
+			off--;
+		else
+			off += used;
+		buf[off] = '\0';
+	}
+	return (off);
+}
+
+struct cmd *
+cmd_parse(int argc, char **argv, const char *file, u_int line, char **cause)
+{
+	const struct cmd_entry	*entry;
+	struct cmd		*cmd;
+	struct args		*args;
+
+	*cause = NULL;
+	if (argc == 0) {
+		xasprintf(cause, "no command");
+		return (NULL);
+	}
+
+	if ((entry = cmd_find_cmd(argv[0])) == NULL) {
+		xasprintf(cause, "unknown command: %s", argv[0]);
+		return (NULL);
+	}
+
+	args = args_parse(entry->args_template, argc, argv);
+	if (args == NULL)
+		goto usage;
+	if (entry->args_lower != -1 && args->argc < entry->args_lower)
+		goto usage;
+	if (entry->args_upper != -1 && args->argc > entry->args_upper)
+		goto usage;
+
+	cmd = xcalloc(1, sizeof *cmd);
+	cmd->entry = entry;
+	cmd->args = args;
+
+	if (file != NULL)
+		cmd->file = xstrdup(file);
+	cmd->line = line;
+
+	return (cmd);
+
+usage:
+	if (args != NULL)
+		args_free(args);
+	xasprintf(cause, "usage: %s %s", entry->name, entry->usage);
+	return (NULL);
+}
+

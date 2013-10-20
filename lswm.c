@@ -22,11 +22,14 @@
 #include <ctype.h>
 #include <limits.h>
 #include <errno.h>
+#include <pwd.h>
 #include "lswm.h"
 
 static void	 print_usage(void);
 static void	 set_display(const char *);
 static int	 check_for_existing_wm(void);
+
+char		*cfg_file = NULL;
 
 #define NO_OF_DESKTOPS 10
 
@@ -36,7 +39,10 @@ int main(int argc, char **argv)
 	char			*display_opt = NULL;
 	xcb_screen_iterator_t	 iter;
 	struct monitor		*m;
-	char			*name;
+	struct passwd		*pw;
+	struct cmd_q		*cfg_cmd_q;
+	char			*name, *home, *causes;
+	u_int			 a;
 
 	while ((opt = getopt(argc, argv, "Vd:vf:")) != -1) {
 		switch (opt) {
@@ -53,7 +59,7 @@ int main(int argc, char **argv)
 			log_level++;
 			break;
 		case 'f':
-			/* TODO:  config file! */
+			cfg_file = strdup(optarg);
 			break;
 		default:
 			print_usage();
@@ -63,11 +69,36 @@ int main(int argc, char **argv)
 	argc -= optind;
 	argv += optind;
 
-	current_screen = NULL;
-	TAILQ_INIT(&monitor_q);
-
 	if (log_level > 0)
 		log_file();
+
+	/* Config file. */
+	if (cfg_file == NULL) {
+		home = getenv("HOME");
+		if (home == NULL || *home == '\0') {
+			pw = getpwuid(getuid());
+			if (pw != NULL)
+				home = pw->pw_dir;
+		}
+		xasprintf(&cfg_file, "%s/" LSWM_CONFIG, home);
+		if (access(cfg_file, R_OK) != 0 && errno == ENOENT) {
+			free(cfg_file);
+			cfg_file = NULL;
+		}
+	}
+
+	if (cfg_file != NULL) {
+		cfg_cmd_q = cmdq_new();
+		if (load_cfg(cfg_file, cfg_cmd_q, &causes) == -1) {
+			for (a = 0; a < ARRAY_LENGTH(&cfg_causes); a++) {
+				log_msg("Config error: '%s'",
+				    ARRAY_ITEM(&cfg_causes, a));
+			}
+		}
+	}
+
+	current_screen = NULL;
+	TAILQ_INIT(&monitor_q);
 
 	if (display_opt != NULL) {
 		set_display(display_opt);

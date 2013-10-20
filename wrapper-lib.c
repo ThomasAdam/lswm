@@ -21,6 +21,7 @@
 #include <errno.h>
 #include <stdarg.h>
 #include <stdio.h>
+#include <string.h>
 #include "lswm.h"
 
 /* Wrapper around asprintf() to handle error code returns. */
@@ -58,6 +59,21 @@ xmalloc(size_t s)
 	return (mem);
 }
 
+void *
+xcalloc(size_t nmemb, size_t size)
+{
+	void	*ptr;
+
+	if (size == 0 || nmemb == 0)
+		log_fatal("zero size");
+	if (SIZE_MAX / nmemb < size)
+		log_fatal("nmemb * size > SIZE_MAX");
+	if ((ptr = calloc(nmemb, size)) == NULL)
+		log_fatal("xcalloc failed");
+
+	return (ptr);
+}
+
 /* Wrapper for s[n]printf */
 int
 xsprintf(char *out, const char *fmt, ...)
@@ -74,4 +90,33 @@ xsprintf(char *out, const char *fmt, ...)
 	va_end(ap);
 
 	return (i);
+}
+
+char *
+xstrdup(const char *s)
+{
+	char	*ptr;
+	size_t	 len;
+
+	len = strlen(s) + 1;
+	ptr = xmalloc(len);
+
+	strlcpy(ptr, s, len);
+	return (ptr);
+}
+
+void *
+xrealloc(void *oldptr, size_t nmemb, size_t size)
+{
+	size_t	 newsize = nmemb * size;
+	void	*newptr;
+
+	if (newsize == 0)
+		log_fatal("zero size");
+	if (SIZE_MAX / nmemb < size)
+		log_fatal("nmemb * size > SIZE_MAX");
+	if ((newptr = realloc(oldptr, newsize)) == NULL)
+		log_fatal("xrealloc failed");
+
+	return (newptr);
 }

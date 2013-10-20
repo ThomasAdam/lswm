@@ -17,17 +17,31 @@
 #ifndef _LSWM__H_
 #define _LSWM__H_
 
+#include <stdio.h>
 #include <stdbool.h>
 #include <xcb/xcb.h>
 #include <xcb/xcb_event.h>
 #include <xcb/randr.h>
 #include <xcb/xcb_ewmh.h>
+#include "array.h"
 #include "compat/queue.h"
+#include "compat/tree.h"
 #include "config.h"
 
 #define PROGNAME	"lswm"
 #define VERSION		"0.1"
 #define VER_STR		PROGNAME " " VERSION
+#define LSWM_CONFIG	".lswmrc"
+
+/* Definition to shut gcc up about unused arguments. */
+#define unused __attribute__ ((unused))
+
+/* Attribute to make gcc check printf-like arguments. */
+#define printflike1 __attribute__ ((format (printf, 1, 2)))
+#define printflike2 __attribute__ ((format (printf, 2, 3)))
+#define printflike3 __attribute__ ((format (printf, 3, 4)))
+#define printflike4 __attribute__ ((format (printf, 4, 5)))
+#define printflike5 __attribute__ ((format (printf, 5, 6)))
 
 #ifndef nitems
 #define nitems(n) (sizeof(n) / sizeof((*n)))
@@ -37,30 +51,93 @@
    long long strtonum(const char *, long long, long long, const char **);
 #endif
 
+#ifdef NO_STRLCPY
+    size_t strlcpy(char *, const char *, size_t);
+#endif
+
+#ifdef NO_FGETLN
+    char *fgetln(FILE *, size_t *);
+#endif
+
 #define FOCUS_BORDER 0
 #define UNFOCUS_BORDER 1
 
-struct arg {
-	char	*key;
-	char	*value;
-
-	TAILQ_ENTRY(arg)	entry;
+/* Parsed arguments structures. */
+struct args_entry {
+	u_char			 flag;
+	char			*value;
+	RB_ENTRY(args_entry)	 entry;
 };
-TAILQ_HEAD(args, arg);
+RB_HEAD(args_tree, args_entry);
+
+struct args {
+	struct args_tree	  tree;
+	int		 	  argc;
+	char	       		**argv;
+};
 
 /* Information used to register commands lswm understands. */
 struct cmd {
-	/* The name of the command. */
+	const struct cmd_entry	*entry;
+	struct args		*args;
+
+	char			*file;
+	u_int			 line;
+
+	TAILQ_ENTRY(cmd)	 qentry;
+};
+
+struct cmd_list {
+	int		 	 references;
+	TAILQ_HEAD(, cmd) 	 list;
+};
+
+/* Command return values. */
+enum cmd_retval {
+	CMD_RETURN_ERROR = -1,
+	CMD_RETURN_NORMAL = 0,
+};
+
+/* Command queue entry. */
+struct cmd_q_item {
+	struct cmd_list		*cmdlist;
+	TAILQ_ENTRY(cmd_q_item)	 qentry;
+};
+TAILQ_HEAD(cmd_q_items, cmd_q_item);
+
+/* Command queue. */
+struct cmd_q {
+	int			 references;
+	int			 dead;
+
+	struct client		*client;
+	int			 client_exit;
+
+	struct cmd_q_items	 queue;
+	struct cmd_q_item	*item;
+	struct cmd		*cmd;
+
+	time_t			 time;
+	u_int			 number;
+
+	void			 (*emptyfn)(struct cmd_q *);
+	void			*data;
+
+	TAILQ_ENTRY(cmd_q)       waitentry;
+};
+
+/* Command definition. */
+struct cmd_entry {
 	const char	*name;
 
-	/* The arguments it accepts. */
 	const char	*args_template;
+	int		 args_lower;
+	int		 args_upper;
 
-	/* The queue of commands parsed for this command. */
-	struct args	 args_q;
+	const char	*usage;
 
-	/* The function to run. */
-	int		 (*exec)(void);
+	/*void		 (*key_binding)(struct cmd *, int);*/
+	enum cmd_retval	 (*exec)(struct cmd *, struct cmd_q *);
 };
 
 struct rectangle {
@@ -139,19 +216,42 @@ struct monitor {
 TAILQ_HEAD(monitors, monitor);
 
 /* Bindings for key/mouse. */
-struct binding {
+struct mouse_binding {
+};
+
+struct key_binding {
 };
 
 struct monitors		 monitor_q;
 
-extern struct cmd	*cmd_table[];
-extern struct cmd	 cmd_rename;
+extern struct cmd_entry	*cmd_table[];
+extern const struct cmd_entry  cmd_bindm;
+extern const struct cmd_entry	 cmd_move;
+
+/* For failures of running commands during config loading. */
+extern struct causelist cfg_causes;
+/* List of error causes. */
+ARRAY_DECL(causelist, char *);
 
 xcb_connection_t	*dpy;
 xcb_screen_t		*current_screen;
 int			 default_screen;
 int                      log_level;
 int			 randr_start;
+extern char		*cfg_file;
+
+/* arguments.c */
+int		 args_cmp(struct args_entry *, struct args_entry *);
+RB_PROTOTYPE(args_tree, args_entry, entry, args_cmp);
+struct args	*args_create(int, ...);
+struct args	*args_parse(const char *, int, char **);
+void		 args_free(struct args *);
+size_t		 args_print(struct args *, char *, size_t);
+int		 args_has(struct args *, u_char);
+void		 args_set(struct args *, u_char, const char *);
+const char	*args_get(struct args *, u_char);
+long long	 args_strtonum(
+		    struct args *, u_char, long long, long long, char **);
 
 /* log.c */
 void    log_file(void);
@@ -162,7 +262,10 @@ void    log_fatal(const char *, ...);
 /* wrapper-lib.c */
 int      xasprintf(char **, const char *, ...);
 void	*xmalloc(size_t);
+void	*xcalloc(size_t, size_t);
 int	 xsprintf(char *, const char *, ...);
+char	*xstrdup(const char *);
+void	*xrealloc(void *, size_t, size_t);
 
 /* randr.c */
 void		 randr_maybe_init(void);
@@ -175,6 +278,10 @@ void		 add_desktop_to_monitor(struct monitor *, struct desktop *);
 void		 desktop_set_name(struct desktop *, const char *);
 inline int	 desktop_count_all_desktops(void);
 
+/* cfg.c */
+int		 load_cfg(const char *, struct cmd_q *, char **);
+void		 cfg_show_causes(void);
+
 /* client.c */
 void	 	 client_scan_windows(void);
 struct client	*client_create(xcb_window_t);
@@ -184,9 +291,29 @@ void		 client_set_border_colour(struct client *, int);
 uint32_t	 client_get_colour(const char *);
 
 /* cmd.c */
-struct cmd	*cmd_find_cmd(const char *);
-int		 cmd_build_args(char ***, char **, int);
+struct cmd_entry	*cmd_find_cmd(const char *);
+char			**cmd_copy_argv(int, char *const *);
+void			cmd_free_argv(int, char **);
+size_t			cmd_print(struct cmd *, char *, size_t);
+struct cmd		*cmd_parse(int, char **, const char *, u_int, char **);
 
+/* cmd-list.c */
+struct cmd_list	*cmd_list_parse(int, char **, const char *, u_int, char **);
+void		 cmd_list_free(struct cmd_list *);
+size_t		 cmd_list_print(struct cmd_list *, char *, size_t);
+
+/* cmd-string.c */
+int	 cmd_string_parse(const char *, struct cmd_list **, const char *,
+		u_int, char **);
+
+/* cmd-queue.c */
+struct cmd_q		*cmdq_new(void);
+int			 cmdq_free(struct cmd_q *);
+void printflike2	 cmdq_error(struct cmd_q *, const char *, ...);
+void			 cmdq_run(struct cmd_q *, struct cmd_list *);
+void			 cmdq_append(struct cmd_q *, struct cmd_list *);
+int			 cmdq_continue(struct cmd_q *);
+void			 cmdq_flush(struct cmd_q *);
 
 /* ewmh.c */
 void	 ewmh_init(void);
