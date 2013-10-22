@@ -28,6 +28,7 @@
 static void	 print_usage(void);
 static void	 set_display(const char *);
 static int	 check_for_existing_wm(void);
+static int	 setup_key_bindings(void);
 static void	 event_loop(void);
 
 char		*cfg_file = NULL;
@@ -153,6 +154,9 @@ int main(int argc, char **argv)
 		}
 	}
 
+	setup_key_bindings();
+	event_loop();
+
 	log_close();
 
 	xcb_disconnect(dpy);
@@ -161,22 +165,36 @@ int main(int argc, char **argv)
 }
 
 static void
+setup_key_bindings(void)
+{
+	const struct keys {
+		const char	*modifier_string;
+		const char	*key_name;
+		const char	*command_string;
+	} all_keys[] = {
+		{ "CM",	"a", "move" },
+		{ "4S", "q", "move" },
+	};
+
+	/* Grab keys here. */
+}
+
+static void
 event_loop(void)
 {
 	xcb_generic_event_t	*ev;
 
-	for (;;) {
-		xcb_flush(dpy);
-		ev = xcb_wait_for_event(dpy);
-
+	while ((ev = xcb_wait_for_event(dpy)) != NULL) {
 		switch (ev->response_type & ~0x80) {
 		case XCB_KEY_PRESS:
 			log_msg("Key pressed...");
 			break;
 		default:
+			log_msg("Got some other event...");
 			break;
 		}
 	}
+	free(ev);
 }
 
 static void
