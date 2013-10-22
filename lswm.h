@@ -231,8 +231,8 @@ TAILQ_HEAD(key_bindings, key_binding);
 struct monitors		 monitor_q;
 
 extern struct cmd_entry	*cmd_table[];
-extern const struct cmd_entry  cmd_bindm;
-extern const struct cmd_entry	 cmd_move;
+extern struct cmd_entry	 cmd_bindm;
+extern struct cmd_entry	 cmd_move;
 
 /* For failures of running commands during config loading. */
 extern struct causelist cfg_causes;

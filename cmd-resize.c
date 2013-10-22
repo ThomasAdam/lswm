@@ -18,7 +18,7 @@
 
 #include "lswm.h"
 
-const struct cmd_entry cmd_move = {
+struct cmd_entry cmd_move = {
 	"move",
 	"v",
 	0,
