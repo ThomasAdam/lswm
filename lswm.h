@@ -220,7 +220,13 @@ struct mouse_binding {
 };
 
 struct key_binding {
+	unsigned int			 modifier;
+	xcb_keysym_t			 key;
+	struct cmd_list			*cmd_list;
+
+	TAILQ_ENTRY(key_binding)	 entry;
 };
+TAILQ_HEAD(key_bindings, key_binding);
 
 struct monitors		 monitor_q;
 
