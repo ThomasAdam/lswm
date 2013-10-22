@@ -20,7 +20,7 @@
 
 enum cmd_retval	 cmd_bindm_exec(struct cmd *, struct cmd_q *);
 
-const struct cmd_entry cmd_bindm = {
+struct cmd_entry cmd_bindm = {
 	"bindm",
 	"0123m:",
 	0,
