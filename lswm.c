@@ -28,6 +28,7 @@
 static void	 print_usage(void);
 static void	 set_display(const char *);
 static int	 check_for_existing_wm(void);
+static void	 event_loop(void);
 
 char		*cfg_file = NULL;
 
@@ -157,6 +158,25 @@ int main(int argc, char **argv)
 	xcb_disconnect(dpy);
 
 	return (0);
+}
+
+static void
+event_loop(void)
+{
+	xcb_generic_event_t	*ev;
+
+	for (;;) {
+		xcb_flush(dpy);
+		ev = xcb_wait_for_event(dpy);
+
+		switch (ev->response_type & ~0x80) {
+		case XCB_KEY_PRESS:
+			log_msg("Key pressed...");
+			break;
+		default:
+			break;
+		}
+	}
 }
 
 static void
