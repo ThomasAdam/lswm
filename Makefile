@@ -38,4 +38,3 @@ DPADD = ${LIBUTIL}
 
 .include <bsd.prog.mk>
 .include <bsd.xconf.mk>
-

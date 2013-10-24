@@ -264,6 +264,9 @@ const char	*args_get(struct args *, u_char);
 long long	 args_strtonum(
 		    struct args *, u_char, long long, long long, char **);
 
+/* keys.c */
+void	 setup_key_bindings(void);
+
 /* log.c */
 void    log_file(void);
 void    log_close(void);
