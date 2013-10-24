@@ -1,6 +1,3 @@
-.SUFFIXES: .c .o
-.PHONY: clean
-
 PROG= lswm
 
 CFLAGS+= -I${X11BASE}/include
