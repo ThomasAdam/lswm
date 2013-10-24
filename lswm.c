@@ -28,7 +28,6 @@
 static void	 print_usage(void);
 static void	 set_display(const char *);
 static int	 check_for_existing_wm(void);
-static int	 setup_key_bindings(void);
 static void	 event_loop(void);
 
 char		*cfg_file = NULL;
@@ -162,21 +161,6 @@ int main(int argc, char **argv)
 	xcb_disconnect(dpy);
 
 	return (0);
-}
-
-static void
-setup_key_bindings(void)
-{
-	const struct keys {
-		const char	*modifier_string;
-		const char	*key_name;
-		const char	*command_string;
-	} all_keys[] = {
-		{ "CM",	"a", "move" },
-		{ "4S", "q", "move" },
-	};
-
-	/* Grab keys here. */
 }
 
 static void
