@@ -45,5 +45,9 @@ setup_key_bindings(void)
 		 */
 
 		keysym = XStringToKeysym(all_keys[i].key_name);
+		if (keysym == NoSymbol) {
+			log_msg("Couldn't translate key '%s'", keysym);
+			continue;
+		}
 	}
 }
