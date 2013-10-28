@@ -245,6 +245,7 @@ int			 default_screen;
 int                      log_level;
 int			 randr_start;
 extern char		*cfg_file;
+struct key_bindings	 global_kbindings;
 
 /* arguments.c */
 int		 args_cmp(struct args_entry *, struct args_entry *);
@@ -261,6 +262,8 @@ long long	 args_strtonum(
 
 /* keys.c */
 void	 setup_key_bindings(void);
+void	 print_key_bindings(void);
+void	 key_grab_bindings(void);
 
 /* log.c */
 void    log_file(void);
