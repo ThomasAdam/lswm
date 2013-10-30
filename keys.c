@@ -36,7 +36,7 @@ setup_key_bindings(void)
 	} all_keys[] = {
 		{ "CM",	"a", "move" },
 		{ "4S", "q", "move" },
-		{ "", "s", "move" },
+		{ "C", "s", "move" },
 	};
 
 	for (i = 0; i < nitems(all_keys); i++) {
@@ -61,15 +61,19 @@ setup_key_bindings(void)
 			char c = toupper(all_keys[i].modifier_string[j]);
 			switch (c) {
 			case 'C':
+				log_msg("Founc C");
 				modifiers |= ControlMask;
 				break;
 			case 'M':
+				log_msg("Founc M");
 				modifiers |= Mod1Mask;
 				break;
 			case 'S':
+				log_msg("Founc S");
 				modifiers |= ShiftMask;
 				break;
 			case '4':
+				log_msg("Founc 4");
 				modifiers |= Mod4Mask;
 				break;
 			}
@@ -92,12 +96,15 @@ void
 key_grab_bindings(void)
 {
 	struct key_binding	*kb;
-
-
+	xcb_generic_error_t	*err;
 
 	TAILQ_FOREACH(kb, &global_kbindings, entry) {
-		xcb_grab_key(dpy, 1, current_screen->root, kb->modifier,
-		    kb->key, XCB_GRAB_MODE_ASYNC, XCB_GRAB_MODE_ASYNC);
+		err = xcb_request_check(dpy,
+			xcb_grab_key(dpy, 1, current_screen->root, kb->modifier,
+			kb->key, XCB_GRAB_MODE_ASYNC, XCB_GRAB_MODE_ASYNC));
+
+		if (err != NULL)
+			log_msg("Couldn't grab keys: %u", err->error_code);
 	}
 }
 
@@ -106,7 +113,7 @@ key_add_binding(u_int modifiers, xcb_keysym_t key, const char *cmd)
 {
 	struct cmd_list		*cmds;
 	struct key_binding	*kb;
-	char			*cause;	
+	char			*cause;
 
 	if ((cmd_string_parse(cmd, &cmds, NULL, -1, &cause)) == -1) {
 		log_msg("Couldn't get valid command: %s", cause);
