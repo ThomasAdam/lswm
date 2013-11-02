@@ -180,7 +180,6 @@ static void
 event_loop(void)
 {
 	xcb_generic_event_t	*ev;
-	xcb_generic_error_t     *err;
 
 	while ((ev = xcb_wait_for_event(dpy)) != NULL) {
 		switch (ev->response_type & ~0x80) {
@@ -188,8 +187,7 @@ event_loop(void)
 			log_msg("Key pressed...");
 			break;
 		default:
-			log_msg("Got some other event: %s: %d (%d)...",
-				((xcb_generic_error_t *)ev)->error_code,
+			log_msg("Got some other event: %d (%d)...",
 				ev->response_type,
 				ev->response_type & ~0x80);
 			break;
