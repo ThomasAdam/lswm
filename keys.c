@@ -19,16 +19,17 @@
 #include <string.h>
 #include <ctype.h>
 #include <X11/Xlib.h>
-#include <X11/keysymdef.h>
+#include <xkbcommon/xkbcommon.h>
 #include "lswm.h"
 
-static void	 key_add_binding(u_int, xcb_keysym_t, const char *);
+static void		 key_add_binding(u_int, xcb_keysym_t, const char *);
 
 void
 setup_key_bindings(void)
 {
-	u_int		 i, j, modifiers;
-	xcb_keysym_t	 keysym;
+	u_int		 i, j, l, modifiers;
+	xkb_keysym_t	 keysym;
+	u_int		 modifiers_array[] = { 0, XCB_MOD_MASK_LOCK };
 	const struct keys {
 		const char	*modifier_string;
 		const char	*key_name;
@@ -48,37 +49,31 @@ setup_key_bindings(void)
 		 * XStringToKeysym() so we've got to default to a mixture of
 		 * X11/Xlib and XCB.  APIs!  Yaaaay!
 		 */
-		keysym = XStringToKeysym(all_keys[i].key_name);
-		if (keysym == NoSymbol) {
-			log_msg("Couldn't translate key '%s'", keysym);
-			continue;
-		}
-		log_msg("Found that key '%s' is '%d'", all_keys[i].key_name,
-			keysym);
+		keysym = xkb_keysym_from_name(all_keys[i].key_name, 0);
 
 		for (j = 0; j < strlen(all_keys[i].modifier_string); j++)
 		{
 			char c = toupper(all_keys[i].modifier_string[j]);
 			switch (c) {
 			case 'C':
-				log_msg("Founc C");
 				modifiers |= ControlMask;
 				break;
 			case 'M':
-				log_msg("Founc M");
 				modifiers |= Mod1Mask;
 				break;
 			case 'S':
-				log_msg("Founc S");
 				modifiers |= ShiftMask;
 				break;
 			case '4':
 				log_msg("Founc 4");
-				modifiers |= Mod4Mask;
 				break;
 			}
 		}
-		key_add_binding(modifiers, keysym, all_keys[i].command_string);
+		for (l = 0; l < nitems(modifiers_array); l++) {
+			key_add_binding(modifiers | modifiers_array[l],
+					keysym,
+					all_keys[i].command_string);
+		}
 	}
 	key_grab_bindings();
 }
@@ -96,15 +91,11 @@ void
 key_grab_bindings(void)
 {
 	struct key_binding	*kb;
-	xcb_generic_error_t	*err;
 
 	TAILQ_FOREACH(kb, &global_kbindings, entry) {
-		err = xcb_request_check(dpy,
-			xcb_grab_key(dpy, 1, current_screen->root, kb->modifier,
-			kb->key, XCB_GRAB_MODE_ASYNC, XCB_GRAB_MODE_ASYNC));
-
-		if (err != NULL)
-			log_msg("Couldn't grab keys: %u", err->error_code);
+		log_msg("Grabbing key with keysym: '%d'", kb->key);
+		xcb_grab_key(dpy, 1, current_screen->root, kb->modifier,
+			kb->key, XCB_GRAB_MODE_ASYNC, XCB_GRAB_MODE_ASYNC);
 	}
 }
 
