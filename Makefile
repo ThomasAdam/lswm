@@ -8,7 +8,7 @@ DEBUG= 1
 CC?= cc
 CFLAGS+= -Wno-format-nonliteral -D_GNU_SOURCE -DBUILD="\"$(VERSION)\"" -DNO_STRTONUM -DNO_STRLCPY -DNO_FGETLN
 #LDFLAGS+= -L/usr/local/lib
-LIBS+= -lm -lxcb -lxcb-icccm -lxcb-ewmh -lxcb-randr -lX11
+LIBS+= -lm -lxcb -lxcb-icccm -lxcb-ewmh -lxcb-randr -lxcb-keysyms -lxkbcommon -lX11
 
 ifdef DEBUG
 CFLAGS+= -g -ggdb -DDEBUG

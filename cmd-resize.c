@@ -18,11 +18,21 @@
 
 #include "lswm.h"
 
+enum cmd_retval	 cmd_move_exec(struct cmd *, struct cmd_q *);
+
 struct cmd_entry cmd_move = {
 	"move",
 	"v",
 	0,
 	1,
 	"move [-v]",
-	NULL
+	cmd_move_exec
 };
+
+enum cmd_retval
+cmd_move_exec(struct cmd *self, struct cmd_q *cmdq)
+{
+	log_msg("I would move this window!...");
+
+	return (CMD_RETURN_NORMAL);
+}

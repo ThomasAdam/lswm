@@ -23,6 +23,8 @@
 #include <xcb/xcb_event.h>
 #include <xcb/randr.h>
 #include <xcb/xcb_ewmh.h>
+#include <X11/keysymdef.h>
+#include <xcb/xcb_keysyms.h>
 #include "array.h"
 #include "compat/queue.h"
 #include "compat/tree.h"
@@ -110,9 +112,6 @@ struct cmd_q {
 	int			 references;
 	int			 dead;
 
-	struct client		*client;
-	int			 client_exit;
-
 	struct cmd_q_items	 queue;
 	struct cmd_q_item	*item;
 	struct cmd		*cmd;
@@ -122,8 +121,6 @@ struct cmd_q {
 
 	void			 (*emptyfn)(struct cmd_q *);
 	void			*data;
-
-	TAILQ_ENTRY(cmd_q)       waitentry;
 };
 
 /* Command definition. */
@@ -260,10 +257,13 @@ const char	*args_get(struct args *, u_char);
 long long	 args_strtonum(
 		    struct args *, u_char, long long, long long, char **);
 
+/* events.c */
+void	 event_loop(void);
+
 /* keys.c */
-void	 setup_key_bindings(void);
-void	 print_key_bindings(void);
-void	 key_grab_bindings(void);
+void		 setup_key_bindings(void);
+void		 print_key_bindings(void);
+void		 key_grab_bindings(void);
 
 /* log.c */
 void    log_file(void);
