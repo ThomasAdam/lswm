@@ -268,7 +268,7 @@ void	 event_loop(void);
 /* keys.c */
 void		 setup_key_bindings(void);
 void		 print_key_bindings(void);
-void		 key_grab_bindings(void);
+void		 key_grab_bindings(xcb_window_t);
 
 /* log.c */
 void    log_file(void);

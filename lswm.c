@@ -135,6 +135,9 @@ int main(int argc, char **argv)
 		}
 	}
 
+	TAILQ_INIT(&global_kbindings);
+	setup_key_bindings();
+
 	client_scan_windows();
 
 	/* Go over all monitors, print the active desktop, and any clients
@@ -151,18 +154,6 @@ int main(int argc, char **argv)
 			}
 		}
 	}
-
-	TAILQ_INIT(&global_kbindings);
-	setup_key_bindings();
-
-	uint32_t values[] = {
-		XCB_EVENT_MASK_EXPOSURE|XCB_EVENT_MASK_BUTTON_PRESS|
-		XCB_EVENT_MASK_BUTTON_RELEASE|XCB_EVENT_MASK_POINTER_MOTION|
-		XCB_EVENT_MASK_ENTER_WINDOW|XCB_EVENT_MASK_LEAVE_WINDOW|
-                XCB_EVENT_MASK_KEY_PRESS|XCB_EVENT_MASK_KEY_RELEASE
-	};
-	xcb_change_window_attributes(dpy, current_screen->root,
-	    XCB_CW_EVENT_MASK, values);
 
 	xcb_flush(dpy);
 
