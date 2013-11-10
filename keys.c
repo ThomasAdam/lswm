@@ -65,7 +65,7 @@ setup_key_bindings(void)
 				modifiers |= ShiftMask;
 				break;
 			case '4':
-				log_msg("Founc 4");
+				modifiers |= Mod4Mask;
 				break;
 			}
 		}
@@ -75,7 +75,7 @@ setup_key_bindings(void)
 					all_keys[i].command_string);
 		}
 	}
-	key_grab_bindings();
+	key_grab_bindings(current_screen->root);
 }
 
 void
@@ -88,13 +88,21 @@ print_key_bindings(void)
 }
 
 void
-key_grab_bindings(void)
+key_grab_bindings(xcb_window_t win)
 {
 	struct key_binding	*kb;
 
+	uint32_t values[] = {
+		XCB_EVENT_MASK_EXPOSURE|XCB_EVENT_MASK_BUTTON_PRESS|
+		XCB_EVENT_MASK_BUTTON_RELEASE|XCB_EVENT_MASK_POINTER_MOTION|
+		XCB_EVENT_MASK_ENTER_WINDOW|XCB_EVENT_MASK_LEAVE_WINDOW|
+                XCB_EVENT_MASK_KEY_PRESS|XCB_EVENT_MASK_KEY_RELEASE
+	};
+	xcb_change_window_attributes(dpy, win, XCB_CW_EVENT_MASK, values);
+
 	TAILQ_FOREACH(kb, &global_kbindings, entry) {
-		log_msg("Grabbing key with keysym: '%d'", kb->key);
-		xcb_grab_key(dpy, 1, current_screen->root, kb->modifier,
+		log_msg("Grabbing key with keysym: '%d' 0x%x", kb->key, win);
+		xcb_grab_key(dpy, 1, win, kb->modifier,
 			kb->key, XCB_GRAB_MODE_ASYNC, XCB_GRAB_MODE_ASYNC);
 	}
 }

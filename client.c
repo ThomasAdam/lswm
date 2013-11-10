@@ -92,6 +92,8 @@ client_manage_client(struct client *c, bool needs_map)
 	/* Borders. */
 	client_set_bw(c, &c_geom);
 	client_set_border_colour(c, 0);
+
+	key_grab_bindings(c->win);
 }
 
 void
