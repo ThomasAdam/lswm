@@ -64,6 +64,9 @@
 #define FOCUS_BORDER 0
 #define UNFOCUS_BORDER 1
 
+#define TYPE_KEY 0x1
+#define TYPE_MOUSE 0x2
+
 /* Parsed arguments structures. */
 struct args_entry {
 	u_char			 flag;
@@ -218,17 +221,22 @@ struct monitor {
 TAILQ_HEAD(monitors, monitor);
 
 /* Bindings for key/mouse. */
-struct mouse_binding {
+union pressed {
+	xcb_keysym_t     key;
+	u_int            button;
 };
 
-struct key_binding {
+struct binding {
 	unsigned int			 modifier;
-	xcb_keysym_t			 key;
+	unsigned int			 type;
+
+	union pressed p;
+
 	struct cmd_list			*cmd_list;
 
-	TAILQ_ENTRY(key_binding)	 entry;
+	TAILQ_ENTRY(binding)		 entry;
 };
-TAILQ_HEAD(key_bindings, key_binding);
+TAILQ_HEAD(bindings, binding);
 
 struct monitors		 monitor_q;
 
@@ -247,7 +255,7 @@ int			 default_screen;
 int                      log_level;
 int			 randr_start;
 extern char		*cfg_file;
-struct key_bindings	 global_kbindings;
+struct bindings		 global_bindings;
 
 /* arguments.c */
 int		 args_cmp(struct args_entry *, struct args_entry *);
@@ -266,9 +274,9 @@ long long	 args_strtonum(
 void	 event_loop(void);
 
 /* keys.c */
-void		 setup_key_bindings(void);
-void		 print_key_bindings(void);
-void		 key_grab_bindings(xcb_window_t);
+void		 setup_bindings(void);
+void		 print_bindings(void);
+void		 grab_all_bindings(xcb_window_t);
 
 /* log.c */
 void    log_file(void);

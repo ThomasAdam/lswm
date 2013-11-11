@@ -135,8 +135,8 @@ int main(int argc, char **argv)
 		}
 	}
 
-	TAILQ_INIT(&global_kbindings);
-	setup_key_bindings();
+	TAILQ_INIT(&global_bindings);
+	setup_bindings();
 
 	client_scan_windows();
 

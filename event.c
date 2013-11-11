@@ -43,7 +43,7 @@ handle_key_press(xcb_generic_event_t *ev)
 	xcb_key_press_event_t	*kp_ev = (xcb_key_press_event_t *)ev;
 	xcb_keysym_t		 keysym;
 	xcb_key_symbols_t       *all_keysyms;
-	struct key_binding	*kb;
+	struct binding		*kb;
 	u_int			 clean_mask, mod_clean;
 	struct cmd		*cmd;
 	struct cmd_q		*cmdq = cmdq_new();
@@ -54,11 +54,11 @@ handle_key_press(xcb_generic_event_t *ev)
 	keysym = xcb_key_press_lookup_keysym(all_keysyms, kp_ev, 0);
 	clean_mask = kp_ev->state & ~(XCB_MOD_MASK_LOCK);
 
-	TAILQ_FOREACH(kb, &global_kbindings, entry) {
+	TAILQ_FOREACH(kb, &global_bindings, entry) {
 		mod_clean = kb->modifier & ~(XCB_MOD_MASK_LOCK);
-		log_msg("KP: %d, K: %d, M: %d (%d)", keysym, kb->key,
+		log_msg("KP: %d, K: %d, M: %d (%d)", keysym, kb->p.key,
 				mod_clean, clean_mask);
-		if (keysym == kb->key && kp_ev->state == clean_mask) {
+		if (keysym == kb->p.key && kp_ev->state == clean_mask) {
 			cmdq_run(cmdq, kb->cmd_list);
 		}
 	}
