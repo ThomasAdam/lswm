@@ -62,6 +62,7 @@ setup_bindings(void)
 		case TYPE_MOUSE: {
 			mouse = strtonum(all_bindings[i].key_name, 0,
 					INT_MAX, NULL);
+			log_msg("Mouse button '%d' found", mouse);
 			switch (mouse) {
 			case 1: {
 					mbutton = XCB_BUTTON_INDEX_1;
@@ -146,6 +147,14 @@ grab_all_bindings(xcb_window_t win)
 				     XCB_GRAB_MODE_ASYNC, XCB_GRAB_MODE_ASYNC);
 			break;
 		case TYPE_MOUSE:
+			log_msg("Grabbing mouse button (win: 0x%x)...", win);
+			xcb_grab_button(dpy, 0, win,
+					XCB_EVENT_MASK_BUTTON_PRESS,
+					XCB_GRAB_MODE_SYNC,
+					XCB_GRAB_MODE_ASYNC,
+					XCB_NONE,
+					XCB_NONE,
+					kb->p.button, kb->modifier);
 			break;
 		}
 	}

@@ -28,6 +28,7 @@ static void	 (*events[XCB_NO_OPERATION])(xcb_generic_event_t *);
 static void	 register_events(void);
 
 static void	 handle_key_press(xcb_generic_event_t *);
+static void	 handle_button_press(xcb_generic_event_t *);
 
 static void
 register_events(void)
@@ -35,6 +36,15 @@ register_events(void)
 	memset(events, 0, sizeof *events);
 
 	events[XCB_KEY_PRESS] = handle_key_press;
+	events[XCB_BUTTON_PRESS] = handle_button_press;
+}
+
+static void
+handle_button_press(xcb_generic_event_t *ev)
+{
+	xcb_button_press_event_t	*bp_ev = (xcb_button_press_event_t *)ev;
+
+	log_msg("BUTTON PRESS: %d, state: %d", bp_ev->detail, bp_ev->state);
 }
 
 static void
@@ -55,6 +65,9 @@ handle_key_press(xcb_generic_event_t *ev)
 	clean_mask = kp_ev->state & ~(XCB_MOD_MASK_LOCK);
 
 	TAILQ_FOREACH(kb, &global_bindings, entry) {
+		if (kb->type != TYPE_KEY)
+			continue;
+
 		mod_clean = kb->modifier & ~(XCB_MOD_MASK_LOCK);
 		log_msg("KP: %d, K: %d, M: %d (%d)", keysym, kb->p.key,
 				mod_clean, clean_mask);
