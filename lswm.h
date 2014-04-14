@@ -140,6 +140,11 @@ struct cmd_entry {
 	enum cmd_retval	 (*exec)(struct cmd *, struct cmd_q *);
 };
 
+struct ewmh_hints {
+	const char	*name;
+	xcb_atom_t	 atom;
+};
+
 struct rectangle {
 	int	 x;
 	int	 y;
