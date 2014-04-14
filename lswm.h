@@ -19,13 +19,13 @@
 
 #include <stdio.h>
 #include <stdbool.h>
+#include <stdlib.h>
+#include <sys/queue.h>
+#include <sys/tree.h>
 #include <xcb/xcb.h>
 #include <xcb/xcb_event.h>
 #include <xcb/randr.h>
-#include <xcb/xcb_ewmh.h>
 #include "array.h"
-#include "compat/queue.h"
-#include "compat/tree.h"
 #include "config.h"
 
 #define PROGNAME	"lswm"
