@@ -19,7 +19,6 @@
 #include <string.h>
 #include <ctype.h>
 #include <X11/Xlib.h>
-#include <xkbcommon/xkbcommon.h>
 #include "lswm.h"
 
 static void		 add_binding(u_int, union pressed, u_int, const char *);
@@ -28,7 +27,7 @@ void
 setup_bindings(void)
 {
 	u_int		 i, j, l, mouse, mbutton, modifiers;
-	xkb_keysym_t	 keysym;
+	KeySym		 keysym, lck;
 	u_int		 modifiers_array[] = { 0, XCB_MOD_MASK_LOCK };
 	union pressed	 pressed;
 	const struct keys {
@@ -54,8 +53,13 @@ setup_bindings(void)
 			 * default to a mixture of * X11/Xlib and XCB.  APIs!
 			 * Yaaaay!
 			 */
-			keysym = xkb_keysym_from_name(all_bindings[i].key_name,
-				0);
+			keysym = XStringToKeysym(all_bindings[i].key_name);
+			XConvertCase(keysym, &keysym, &lck);
+			if (keysym == XCB_NO_SYMBOL) {
+				log_msg("Unable to bind key: %s, no symbol",
+					all_bindings[i].key_name);
+				continue;
+			}
 			pressed.key = keysym;
 			break;
 		}

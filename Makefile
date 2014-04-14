@@ -2,7 +2,7 @@ PROG= lswm
 
 CFLAGS+= -I${X11BASE}/include
 LDADD+= -L${X11BASE}/lib -lm -lX11 -lX11-xcb -lxcb-icccm -lxcb-randr \
-		-lxcb-keysyms -lxkbcommon
+		-lxcb-keysyms
 
 .if DEBUG
 CFLAGS+= -g -ggdb -DDEBUG
@@ -25,6 +25,7 @@ SRCS=	arguments.c \
 		cmd.c \
 		config.h \
 		desktop.c \
+		event.c \
 		ewmh.c \
 		keys.c \
 		log.c \
