@@ -232,6 +232,12 @@ client_get_size_hints(struct client *c)
 }
 
 void
+client_update_configure(struct client *c)
+{
+	return;
+}
+
+void
 client_manage_client(struct client *c, bool needs_map)
 {
 	struct geometry			 c_geom;

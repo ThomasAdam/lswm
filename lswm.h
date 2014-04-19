@@ -335,6 +335,7 @@ void		 client_wm_protocols(struct client *);
 void		 client_mwm_hints(struct client *);
 void		 client_get_size_hints(struct client *);
 void		 client_set_name(struct client *);
+void		 client_update_configure(struct client *);
 
 /* cmd.c */
 struct cmd_entry	*cmd_find_cmd(const char *);

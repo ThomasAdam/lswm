@@ -31,6 +31,7 @@ static void	 handle_key_press(xcb_generic_event_t *);
 static void	 handle_button_press(xcb_generic_event_t *);
 static void	 handle_motion_notify(xcb_generic_event_t *);
 static void	 handle_map_request(xcb_generic_event_t *);
+static void	 handle_configure_notify(xcb_generic_event_t *);
 
 static void
 register_events(void)
@@ -41,6 +42,59 @@ register_events(void)
 	events[XCB_BUTTON_PRESS] = handle_button_press;
 	events[XCB_MOTION_NOTIFY] = handle_motion_notify;
 	events[XCB_MAP_NOTIFY] = handle_map_request;
+	events[XCB_CONFIGURE_NOTIFY] = handle_configure_notify;
+}
+
+static void
+handle_configure_notify(xcb_generic_event_t *ev)
+{
+	xcb_configure_request_event_t	*cr_ev;
+	struct client			*c;
+	int				 i, mask, values[10];
+
+	cr_ev = (xcb_configure_request_event_t *)ev;
+	i = mask = 0;
+
+	/* No client found means the window isn't mapped yet. */
+	c = client_find_by_window(cr_ev->window);
+
+	/* Work out what this event is telling us so we can inform the client of
+	 * its size, etc.
+	 */
+	switch (cr_ev->value_mask) {
+	case XCB_CONFIG_WINDOW_X:
+		mask |= XCB_CONFIG_WINDOW_X;
+		values[i++] = cr_ev->x;
+		break;
+	case XCB_CONFIG_WINDOW_Y:
+		mask |= XCB_CONFIG_WINDOW_Y;
+		values[i++] = cr_ev->y;
+		break;
+	case XCB_CONFIG_WINDOW_WIDTH:
+		mask |= XCB_CONFIG_WINDOW_WIDTH;
+		values[i++] = cr_ev->width;
+		break;
+	case XCB_CONFIG_WINDOW_HEIGHT:
+		mask |= XCB_CONFIG_WINDOW_HEIGHT;
+		values[i++] = cr_ev->height;
+		break;
+	case XCB_CONFIG_WINDOW_BORDER_WIDTH:
+		mask |= XCB_CONFIG_WINDOW_BORDER_WIDTH;
+		values[i++] = cr_ev->border_width;
+		break;
+	case XCB_CONFIG_WINDOW_STACK_MODE:
+		mask |= XCB_CONFIG_WINDOW_STACK_MODE;
+		values[i++] = cr_ev->stack_mode;
+		break;
+	case XCB_CONFIG_WINDOW_SIBLING:
+		mask |= XCB_CONFIG_WINDOW_STACK_MODE;
+		values[i++] = cr_ev->sibling;
+		break;
+	}
+	xcb_configure_window(dpy, cr_ev->window, mask, values);
+
+	if (c != NULL)
+		client_update_configure(c);
 }
 
 static void
