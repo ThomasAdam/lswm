@@ -364,7 +364,6 @@ void			 cmdq_flush(struct cmd_q *);
 
 /* ewmh.c */
 xcb_ewmh_connection_t	*ewmh;
-xcb_atom_t		 ewmh_atoms_supported[100];
 xcb_atom_t	 x_atom_by_name(const char *);
 void		 x_atoms_init(void);
 void		 ewmh_set_active_window(void);

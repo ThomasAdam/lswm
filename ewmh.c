@@ -51,7 +51,7 @@ atom_from_string(const char *atom_name)
 xcb_atom_t
 x_atom_by_name(const char *name)
 {
-	int		 i;
+	u_int		 i;
 	xcb_atom_t	 atom = XCB_ATOM_NONE;
 
 	for (i = 0; i < nitems(cwmh_atoms); i++) {
@@ -66,8 +66,7 @@ x_atom_by_name(const char *name)
 void
 x_atoms_init(void)
 {
-	int		 i;
-	xcb_atom_t	 atom, utf8_string;
+	u_int		 i;
 	xcb_window_t	 child_win;
 
 	ewmh = xmalloc(sizeof(xcb_ewmh_connection_t));
