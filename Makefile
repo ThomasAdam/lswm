@@ -2,7 +2,7 @@ PROG= lswm
 
 CFLAGS+= -I${X11BASE}/include
 LDADD+= -L${X11BASE}/lib -lm -lX11 -lX11-xcb -lxcb-icccm -lxcb-randr \
-		-lxcb-keysyms
+		-lxcb-keysyms -lxcb-ewmh
 
 .if DEBUG
 CFLAGS+= -g -ggdb -DDEBUG
