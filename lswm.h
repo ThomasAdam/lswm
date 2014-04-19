@@ -20,10 +20,13 @@
 #include <stdio.h>
 #include <stdbool.h>
 #include <stdlib.h>
+#include <sys/param.h>
 #include <sys/queue.h>
 #include <sys/tree.h>
 #include <xcb/xcb.h>
 #include <xcb/xcb_event.h>
+#include <xcb/xcb_icccm.h>
+#include <xcb/xcb_ewmh.h>
 #include <xcb/randr.h>
 #include <X11/keysymdef.h>
 #include <xcb/xcb_keysyms.h>
@@ -140,7 +143,7 @@ struct cmd_entry {
 	enum cmd_retval	 (*exec)(struct cmd *, struct cmd_q *);
 };
 
-struct ewmh_hints {
+struct x_atoms {
 	const char	*name;
 	xcb_atom_t	 atom;
 };
@@ -159,8 +162,18 @@ struct geometry {
 	/* The window's border width */
 	int	 bw;
 
+	TAILQ_ENTRY(geometry)	 entry;
+};
+TAILQ_HEAD(geometries, geometry);
+
+struct client {
+	xcb_window_t	 	 win;
+	char			*name;
+
 	/* Hints for controlling window size. */
 	struct {
+		int	 inc_w;
+		int	 inc_h;
 		int	 min_w;
 		int	 min_h;
 		int	 max_w;
@@ -171,13 +184,6 @@ struct geometry {
 		int	 win_gravity;
 	} hints;
 
-	TAILQ_ENTRY(geometry)	 entry;
-};
-TAILQ_HEAD(geometries, geometry);
-
-struct client {
-	xcb_window_t	 	 win;
-
 	enum {
 		NORMAL = 0,
 		MAXIMISED,
@@ -185,6 +191,14 @@ struct client {
 		MAXIMISED_HORIZ,
 		FULLSCREEN
 	} state;
+
+#define CLIENT_INPUT_FOCUS	0x1
+#define CLIENT_URGENCY		0x2
+#define CLIENT_DELETE_WINDOW	0x4
+	int			 flags;
+
+	xcb_icccm_wm_hints_t	 xwmh;
+	xcb_icccm_get_wm_class_reply_t	 xch;
 
 	struct geometries	 geometries_q;
 
@@ -310,10 +324,17 @@ void		 cfg_show_causes(void);
 /* client.c */
 void	 	 client_scan_windows(void);
 struct client	*client_create(xcb_window_t);
+struct client	*client_find_by_window(xcb_window_t);
+struct client	*client_get_current(void);
 void		 client_manage_client(struct client *, bool);
 void		 client_set_bw(struct client *, struct geometry *);
 void		 client_set_border_colour(struct client *, int);
 uint32_t	 client_get_colour(const char *);
+void		 client_wm_hints(struct client *);
+void		 client_wm_protocols(struct client *);
+void		 client_mwm_hints(struct client *);
+void		 client_get_size_hints(struct client *);
+void		 client_set_name(struct client *);
 
 /* cmd.c */
 struct cmd_entry	*cmd_find_cmd(const char *);
@@ -321,6 +342,7 @@ char			**cmd_copy_argv(int, char *const *);
 void			cmd_free_argv(int, char **);
 size_t			cmd_print(struct cmd *, char *, size_t);
 struct cmd		*cmd_parse(int, char **, const char *, u_int, char **);
+void			*cmd_get_context(struct cmd *);
 
 /* cmd-list.c */
 struct cmd_list	*cmd_list_parse(int, char **, const char *, u_int, char **);
@@ -341,8 +363,11 @@ int			 cmdq_continue(struct cmd_q *);
 void			 cmdq_flush(struct cmd_q *);
 
 /* ewmh.c */
-void	 ewmh_init(void);
-void	 ewmh_set_active_window(void);
-void	 ewmh_set_no_of_desktops(void);
+xcb_ewmh_connection_t	*ewmh;
+xcb_atom_t		 ewmh_atoms_supported[100];
+xcb_atom_t	 x_atom_by_name(const char *);
+void		 x_atoms_init(void);
+void		 ewmh_set_active_window(void);
+void		 ewmh_set_no_of_desktops(void);
 
 #endif

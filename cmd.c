@@ -132,3 +132,30 @@ usage:
 	return (NULL);
 }
 
+void *
+cmd_get_context(struct cmd *cmd)
+{
+	struct args	*args = cmd->args;
+	struct client	*c = NULL;
+
+	/* Context will vary depending on the situation.  In most cases,
+	 * operations will involve a client, although we might be operating on a
+	 * window or something else.
+	 *
+	 * Without a -t present, we assume the currently focused window.  If no
+	 * window is focused, that's an error.
+	 *
+	 * If a -t is given then some possibilities exist:
+	 *
+	 *	- The window was given as an explicit id
+	 *	- The window was referenced by workspace:label
+	 *
+	 * If we still can't find the window with -t given, then we error out.
+	 */
+	if (!args_has(args, 't'))
+		return (client_get_current());
+
+	/* XXX: Handle -t parsing here! */
+
+	return (NULL);
+}

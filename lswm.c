@@ -125,7 +125,7 @@ int main(int argc, char **argv)
 		log_fatal("There's already a WM running");
 
 	randr_maybe_init();
-	ewmh_init();
+	x_atoms_init();
 
 	TAILQ_FOREACH(m, &monitor_q, entry) {
 		for (i = 0; i < NO_OF_DESKTOPS; i++) {

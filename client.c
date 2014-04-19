@@ -20,6 +20,13 @@
 #include <string.h>
 #include "lswm.h"
 
+/* The currently focused client. */
+static struct client	*cur_client;
+
+/* Forward declarations. */
+static void	 client_focus_model(struct client *);
+static void	 client_handle_initial_atoms(struct client *);
+
 struct client *
 client_create(xcb_window_t win)
 {
@@ -33,6 +40,195 @@ client_create(xcb_window_t win)
 	new->win = win;
 
 	return (new);
+}
+
+struct client *
+client_get_current(void)
+{
+	return (cur_client);
+}
+
+struct client *
+client_find_by_window(xcb_window_t win)
+{
+	struct client	*c, *find_client = NULL;
+	struct monitor	*m;
+	struct desktop	*d;
+
+	TAILQ_FOREACH(m, &monitor_q, entry) {
+	       TAILQ_FOREACH(d, &m->desktops_q, entry) {
+		       TAILQ_FOREACH(c, &d->clients_q, entry) {
+			       if (c->win == win) {
+				       find_client = c;
+				       break;
+			       }
+		       }
+	       }
+	}
+	return (find_client);
+}
+
+static void
+client_focus_model(struct client *c)
+{
+	/* XXX
+	 * We should be respecting PASSIVE/{GLOBALLY,LOCALLY}_ACTIVE input
+	 * here---but for now, just set the fact that the requested windows
+	 * wants input selection regardless; when the client is made active,
+	 * this hint is applied.
+	 */
+	if (c->xwmh.input && c->xwmh.flags & XCB_ICCCM_WM_HINT_INPUT)
+		c->flags |= CLIENT_INPUT_FOCUS;
+}
+
+static void
+client_handle_initial_atoms(struct client *c)
+{
+	/* This aggregates together all of the client Atoms we wish to check for
+	 * when a window is initially mapped.  Each of these routines are also
+	 * responded to by events.
+	 */
+	client_wm_hints(c);
+	client_wm_protocols(c);
+	client_mwm_hints(c);
+	client_get_size_hints(c);
+	client_set_name(c);
+}
+
+void
+client_set_name(struct client *c)
+{
+	xcb_generic_error_t			*error;
+	xcb_get_property_cookie_t		 p_cookie;
+	xcb_get_property_reply_t		*r;
+
+	p_cookie = xcb_get_property(dpy, 0, c->win, ewmh->_NET_WM_NAME,
+				    XCB_GET_PROPERTY_TYPE_ANY, 0, UINT_MAX);
+
+	if (error) {
+		log_msg("Couldn't get client's NET_WM_NAME");
+		log_msg("    Trying with WM_NAME instead...");
+
+		free(r);
+		p_cookie = xcb_get_property(dpy, 0, c->win, XCB_ATOM_WM_NAME,
+			     XCB_GET_PROPERTY_TYPE_ANY, 0, UINT_MAX);
+
+		r = xcb_get_property_reply(dpy, p_cookie, &error);
+	}
+
+	if (r != NULL && r->type != XCB_NONE && r->length > 0) {
+		free(c->name);
+		c->name = strndup(xcb_get_property_value(r),
+			    xcb_get_property_value_length(r));
+	} else
+		c->name = xstrdup("");
+
+	if (c->name == NULL) {
+		/* xstrdup() would have croaked for us, this is in the case of
+		 * strndup() failing.
+		 */
+		log_fatal("Couldn't do anything for c->name:  NULL");
+	}
+	free(r);
+	log_msg("Got client name of:  <<%s>>", c->name);
+}
+
+void
+client_wm_protocols(struct client *c)
+{
+	xcb_icccm_get_wm_protocols_reply_t	 protocols;
+	xcb_atom_t				 wm_protocols = XCB_ATOM_NONE;
+	xcb_atom_t				 p_atom = XCB_ATOM_NONE;
+	int					 i, reply = 0;
+
+	/* Check the atom exists. */
+	if ((wm_protocols = ewmh->WM_PROTOCOLS) == XCB_ATOM_NONE)
+		return;
+
+	reply = xcb_icccm_get_wm_protocols_reply(dpy,
+			xcb_icccm_get_wm_protocols(dpy, c->win, wm_protocols),
+			    &protocols, NULL);
+
+	if (reply) {
+		/* Fill out the client flags with the things we got back. */
+		for (i = 0; i < protocols.atoms_len; i++) {
+			p_atom = protocols.atoms[i];
+
+			if (p_atom == x_atom_by_name("WM_DELETE_WINDOW"))
+				c->flags |= CLIENT_DELETE_WINDOW;
+
+			if (p_atom == x_atom_by_name("WM_TAKE_FOCUS"))
+				c->flags |= CLIENT_INPUT_FOCUS;
+		}
+		xcb_icccm_get_wm_protocols_reply_wipe(&protocols);
+	}
+}
+
+void
+client_wm_hints(struct client *c)
+{
+	int reply = xcb_icccm_get_wm_hints_reply(
+		dpy, xcb_icccm_get_wm_hints(dpy, c->win),
+		&c->xwmh, NULL);
+
+	if (reply == 0)
+		return;
+
+	client_focus_model(c);
+}
+
+#warning "client_mwm_hints() needs implementing..."
+void
+client_mwm_hints(struct client *c)
+{
+	return;
+}
+
+void
+client_get_size_hints(struct client *c)
+{
+	xcb_size_hints_t	 shints;
+	int			 reply = 0;
+
+	reply = xcb_icccm_get_wm_normal_hints_reply(dpy,
+		    xcb_icccm_get_wm_normal_hints(dpy, c->win), &shints, NULL);
+
+	if (reply == 0)
+		return;
+
+	/* Beat up our copy of the various hints we're tracking.  Note that the
+	 * ICCCM is quite clear about how these hints are to be used.
+	 */
+	switch (shints.flags) {
+	case XCB_ICCCM_SIZE_HINT_P_MIN_SIZE:
+		c->hints.min_w = shints.min_width;
+		c->hints.min_h = shints.min_height;
+		break;
+	case XCB_ICCCM_SIZE_HINT_P_MAX_SIZE:
+		c->hints.max_w = shints.max_width;
+		c->hints.max_h = shints.max_height;
+		break;
+	case XCB_ICCCM_SIZE_HINT_P_RESIZE_INC:
+		c->hints.inc_w = shints.width_inc;
+		c->hints.inc_h = shints.height_inc;
+		break;
+	case XCB_ICCCM_SIZE_HINT_BASE_SIZE:
+		c->hints.base_w = shints.base_width;
+		c->hints.base_h = shints.base_height;
+		break;
+	case XCB_ICCCM_SIZE_HINT_P_ASPECT:
+		/* TODO. */
+		break;
+	case XCB_ICCCM_SIZE_HINT_P_WIN_GRAVITY:
+		/* TODO */
+		break;
+	default:
+		break;
+	}
+
+	/* At most, the amount of resize increment is 1 (ICCCM!) */
+	c->hints.inc_w = MAX(1, c->hints.inc_w);
+	c->hints.inc_h = MAX(1, c->hints.inc_h);
 }
 
 void
@@ -88,6 +284,16 @@ client_manage_client(struct client *c, bool needs_map)
 		TAILQ_INSERT_HEAD(&m->active_desktop->clients_q, c, entry);
 	else
 		TAILQ_INSERT_TAIL(&m->active_desktop->clients_q, c, entry);
+
+	/* Set the application's Class/resource hint here---applications at this
+	 * point are still in the Withdrawn state, and might still have changed
+	 * their XClassHint.
+	 */
+	(void)xcb_icccm_get_wm_class_reply(dpy,
+	    xcb_icccm_get_wm_class(dpy, c->win), &c->xch, NULL);
+
+	/* Check the client for any Atom hints. */
+	client_handle_initial_atoms(c);
 
 	/* Borders. */
 	client_set_bw(c, &c_geom);

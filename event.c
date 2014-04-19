@@ -29,6 +29,8 @@ static void	 register_events(void);
 
 static void	 handle_key_press(xcb_generic_event_t *);
 static void	 handle_button_press(xcb_generic_event_t *);
+static void	 handle_motion_notify(xcb_generic_event_t *);
+static void	 handle_map_request(xcb_generic_event_t *);
 
 static void
 register_events(void)
@@ -37,6 +39,20 @@ register_events(void)
 
 	events[XCB_KEY_PRESS] = handle_key_press;
 	events[XCB_BUTTON_PRESS] = handle_button_press;
+	events[XCB_MOTION_NOTIFY] = handle_motion_notify;
+	events[XCB_MAP_NOTIFY] = handle_map_request;
+}
+
+static void
+handle_map_request(xcb_generic_event_t *ev)
+{
+	return;
+}
+
+static void
+handle_motion_notify(xcb_generic_event_t *ev)
+{
+	return;
 }
 
 static void
