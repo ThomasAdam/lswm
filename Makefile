@@ -3,9 +3,10 @@ PROG= lswm
 CFLAGS+= -I${X11BASE}/include
 LDADD+= -L${X11BASE}/lib -lm -lX11 -lX11-xcb -lxcb-icccm -lxcb-randr \
 		-lxcb-keysyms -lxcb-ewmh
+DEBUG= -g -ggdb
 
 .if DEBUG
-CFLAGS+= -g -ggdb -DDEBUG
+CFLAGS+= -DDEBUG
 CFLAGS+= -Wno-long-long -Wall -W -Wnested-externs -Wformat=2
 CFLAGS+= -Wmissing-prototypes -Wstrict-prototypes -Wmissing-declarations
 CFLAGS+= -Wwrite-strings -Wshadow -Wpointer-arith -Wsign-compare
