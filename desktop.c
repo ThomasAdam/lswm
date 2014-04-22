@@ -28,6 +28,7 @@ desktop_create(void)
 	memset(d, 0, sizeof *d);
 
 	TAILQ_INIT(&d->clients_q);
+	TAILQ_INIT(&d->client_focus_q);
 
 	d->name = NULL;
 
@@ -68,6 +69,27 @@ desktop_setup(struct monitor *m, const char *name)
 	d = desktop_create();
 	desktop_set_name(d, name);
 	add_desktop_to_monitor(m, d);
+}
+
+struct desktop *
+desktop_contains_client(struct client *c)
+{
+	struct monitor	*m;
+	struct desktop	*d, *find_d = NULL;
+	struct client	*c1;
+
+	TAILQ_FOREACH(m, &monitor_q, entry) {
+		TAILQ_FOREACH(d, &m->desktops_q, entry) {
+			TAILQ_FOREACH(c1, &d->clients_q, entry) {
+				if (c1 == c) {
+					find_d = d;
+					break;
+				}
+			}
+		}
+	}
+
+	return (find_d);
 }
 
 inline int

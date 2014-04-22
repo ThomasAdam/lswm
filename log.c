@@ -53,7 +53,8 @@ log_file(void)
 	if (log_level == 0)
 		return;
 
-	xasprintf(&log_name, "lswm-debug-%ld.log", (long)getpid());
+	xasprintf(&log_name, "lswm-debug%s", ".log");
+	//xasprintf(&log_name, "lswm-debug-%ld.log", (long)getpid());
 
 	/* Open the log file. */
 	if ((l_file = fopen(log_name, "w")) == NULL) {

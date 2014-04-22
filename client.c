@@ -22,6 +22,7 @@
 
 /* The currently focused client. */
 static struct client	*cur_client;
+static struct client	*prev_client;
 
 /* Forward declarations. */
 static void	 client_focus_model(struct client *);
@@ -38,6 +39,8 @@ client_create(xcb_window_t win)
 	TAILQ_INIT(&new->geometries_q);
 
 	new->win = win;
+	new->current = 0;
+	new->previous = 0;
 
 	return (new);
 }
@@ -46,6 +49,12 @@ struct client *
 client_get_current(void)
 {
 	return (cur_client);
+}
+
+struct client *
+client_get_previous(void)
+{
+	return (prev_client);
 }
 
 struct client *
@@ -100,7 +109,7 @@ client_set_name(struct client *c)
 {
 	xcb_generic_error_t			*error;
 	xcb_get_property_cookie_t		 p_cookie;
-	xcb_get_property_reply_t		*r;
+	xcb_get_property_reply_t		*r = NULL;
 
 	p_cookie = xcb_get_property(dpy, 0, c->win, ewmh->_NET_WM_NAME,
 				    XCB_GET_PROPERTY_TYPE_ANY, 0, UINT_MAX);
@@ -109,7 +118,6 @@ client_set_name(struct client *c)
 		log_msg("Couldn't get client's NET_WM_NAME");
 		log_msg("    Trying with WM_NAME instead...");
 
-		free(r);
 		p_cookie = xcb_get_property(dpy, 0, c->win, XCB_ATOM_WM_NAME,
 			     XCB_GET_PROPERTY_TYPE_ANY, 0, UINT_MAX);
 
@@ -139,7 +147,8 @@ client_wm_protocols(struct client *c)
 	xcb_icccm_get_wm_protocols_reply_t	 protocols;
 	xcb_atom_t				 wm_protocols = XCB_ATOM_NONE;
 	xcb_atom_t				 p_atom = XCB_ATOM_NONE;
-	int					 i, reply = 0;
+	int					 reply = 0;
+	u_int					 i;
 
 	/* Check the atom exists. */
 	if ((wm_protocols = ewmh->WM_PROTOCOLS) == XCB_ATOM_NONE)
@@ -234,7 +243,36 @@ client_get_size_hints(struct client *c)
 void
 client_update_configure(struct client *c)
 {
-	return;
+	/* Called whenever a managed client needs to be told of a new position;
+	 * say after a ConfigureNotify request.
+	 *
+	 * This sends a StructureNotify mask so that the client actually
+	 * receives the event and can react to it.
+	 */
+	xcb_configure_request_event_t	 cr;
+	struct geometry			*g;
+
+	if ((g = TAILQ_FIRST(&c->geometries_q)) == NULL) {
+		/* Shouldn't happen! */
+		log_msg("Couldn't get client's geometry during configure");
+		return;
+	}
+
+	memset(&cr, 0, sizeof(xcb_configure_request_event_t));
+	cr.response_type = XCB_CONFIGURE_NOTIFY;
+	cr.stack_mode = XCB_NONE;
+	cr.window = c->win;
+	cr.x = g->coords.x;
+	cr.y = g->coords.y;
+	cr.width = g->coords.w;
+	cr.height = g->coords.h;
+	cr.border_width = g->bw;
+
+	log_msg("I have a border_width of: %d", g->bw);
+
+	xcb_send_event(dpy, false, c->win, XCB_EVENT_MASK_STRUCTURE_NOTIFY,
+			(char *)&cr);
+	xcb_flush(dpy);
 }
 
 void
@@ -244,6 +282,8 @@ client_manage_client(struct client *c, bool needs_map)
 	struct rectangle		 r;
 	struct monitor			*m;
 	xcb_get_geometry_reply_t	*geom_r;
+	int				 values[2];
+	int				 mask = 0;
 
 	if (c == NULL)
 		log_fatal("Tried to manage a NULL client");
@@ -301,11 +341,71 @@ client_manage_client(struct client *c, bool needs_map)
 	/* Check the client for any Atom hints. */
 	client_handle_initial_atoms(c);
 
+	mask = XCB_CW_EVENT_MASK;
+	values[0] =
+		XCB_EVENT_MASK_ENTER_WINDOW | XCB_EVENT_MASK_STRUCTURE_NOTIFY;
+	xcb_change_window_attributes_checked(dpy, c->win, mask, values);
+	xcb_change_save_set(dpy, XCB_SET_MODE_INSERT, c->win);
+
 	/* Borders. */
+	client_update_configure(c);
 	client_set_bw(c, &c_geom);
-	client_set_border_colour(c, 0);
+	client_set_border_colour(c, UNFOCUS_BORDER);
+
+	xcb_flush(dpy);
 
 	grab_all_bindings(c->win);
+}
+
+void
+client_active(struct client *c)
+{
+	/* Makes this client the active one; taking into account any hints set
+	 * on it, and handling the focus appropriately.  This also handles
+	 * keeping the focus ring in order, for when we support tabbing through
+	 * clients.
+	 */
+	struct desktop	*d;
+	struct client	*find_c, *last_c = NULL;
+
+	if (c == NULL || c->win == current_screen->root) {
+		log_msg("client is NULL, or root win so bailing...");
+		return;
+	}
+
+	if ((d = desktop_contains_client(c)) == NULL) {
+		/* This shouldn't happen! */
+		log_fatal("Client doesn't belong to any desktop: %p", c);
+	}
+
+	if (c->previous)
+		last_c = prev_client;
+
+	if (last_c == NULL)
+		last_c = client_get_current();
+
+	log_msg("In client_active()");
+
+	TAILQ_FOREACH(find_c, &d->clients_q, entry) {
+		log_msg("client_focus_q: %p", find_c);
+		if (find_c->previous) {
+			last_c = find_c;
+			break;
+		}
+	}
+
+	if (c->current)
+		cur_client = c;
+
+	if (c->previous)
+		prev_client = last_c;
+
+	log_msg("focus_client: c: %p, last_c: %p\n", c, last_c);
+	if (c->current)
+		client_set_border_colour(c, FOCUS_BORDER);
+	else if (c->previous)
+		client_set_border_colour(prev_client, UNFOCUS_BORDER);
+	xcb_flush(dpy);
 }
 
 void

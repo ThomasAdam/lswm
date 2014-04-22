@@ -196,6 +196,8 @@ struct client {
 #define CLIENT_URGENCY		0x2
 #define CLIENT_DELETE_WINDOW	0x4
 	int			 flags;
+	int			 current;
+	int			 previous;
 
 	xcb_icccm_wm_hints_t	 xwmh;
 	xcb_icccm_get_wm_class_reply_t	 xch;
@@ -212,6 +214,9 @@ struct desktop {
 
 	/* The list of clients on this desktop. */
 	struct clients		 clients_q;
+
+	/* The focus ordering of clients on this desktop. */
+	struct clients		 client_focus_q;
 
 	/* Next entry in the list. */
 	TAILQ_ENTRY(desktop)	 entry;
@@ -253,6 +258,8 @@ struct binding {
 TAILQ_HEAD(bindings, binding);
 
 struct monitors		 monitor_q;
+struct clients;
+struct desktops;
 
 extern struct cmd_entry	*cmd_table[];
 extern struct cmd_entry	 cmd_bindm;
@@ -297,6 +304,7 @@ void    log_file(void);
 void    log_close(void);
 void    log_msg(const char *, ...);
 void    log_fatal(const char *, ...);
+#define log_debug log_msg
 
 /* wrapper-lib.c */
 int      xasprintf(char **, const char *, ...);
@@ -316,6 +324,7 @@ struct desktop	*desktop_create(void);
 void		 add_desktop_to_monitor(struct monitor *, struct desktop *);
 void		 desktop_set_name(struct desktop *, const char *);
 inline int	 desktop_count_all_desktops(void);
+struct desktop	*desktop_contains_client(struct client *);
 
 /* cfg.c */
 int		 load_cfg(const char *, struct cmd_q *, char **);
@@ -326,6 +335,7 @@ void	 	 client_scan_windows(void);
 struct client	*client_create(xcb_window_t);
 struct client	*client_find_by_window(xcb_window_t);
 struct client	*client_get_current(void);
+struct client	*client_get_previous(void);
 void		 client_manage_client(struct client *, bool);
 void		 client_set_bw(struct client *, struct geometry *);
 void		 client_set_border_colour(struct client *, int);
@@ -336,6 +346,7 @@ void		 client_mwm_hints(struct client *);
 void		 client_get_size_hints(struct client *);
 void		 client_set_name(struct client *);
 void		 client_update_configure(struct client *);
+void		 client_active(struct client *);
 
 /* cmd.c */
 struct cmd_entry	*cmd_find_cmd(const char *);
@@ -365,7 +376,6 @@ void			 cmdq_flush(struct cmd_q *);
 
 /* ewmh.c */
 xcb_ewmh_connection_t	*ewmh;
-xcb_atom_t		 ewmh_atoms_supported[100];
 xcb_atom_t	 x_atom_by_name(const char *);
 void		 x_atoms_init(void);
 void		 ewmh_set_active_window(void);

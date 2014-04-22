@@ -32,6 +32,8 @@ static void	 handle_button_press(xcb_generic_event_t *);
 static void	 handle_motion_notify(xcb_generic_event_t *);
 static void	 handle_map_request(xcb_generic_event_t *);
 static void	 handle_configure_notify(xcb_generic_event_t *);
+static void	 handle_enter_notify(xcb_generic_event_t *);
+static void	 handle_leave_notify(xcb_generic_event_t *);
 
 static void
 register_events(void)
@@ -43,6 +45,55 @@ register_events(void)
 	events[XCB_MOTION_NOTIFY] = handle_motion_notify;
 	events[XCB_MAP_NOTIFY] = handle_map_request;
 	events[XCB_CONFIGURE_NOTIFY] = handle_configure_notify;
+	events[XCB_ENTER_NOTIFY] = handle_enter_notify;
+	//events[XCB_LEAVE_NOTIFY] = handle_leave_notify;
+}
+
+static void
+handle_leave_notify(xcb_generic_event_t *ev)
+{
+	xcb_leave_notify_event_t	*lne = (xcb_leave_notify_event_t *)ev;
+	struct client			*c;
+
+	log_msg("In handle_leave_notify()");
+
+	if (lne->event == current_screen->root)
+		return;
+
+	c = client_find_by_window(lne->event);
+	if (c != NULL) {
+		c->previous = 1;
+		c->current = 0;
+		client_active(c);
+	}
+
+	log_msg("LeaveNotify: c: %p\n", c);
+}
+
+static void
+handle_enter_notify(xcb_generic_event_t *ev)
+{
+	xcb_enter_notify_event_t	*ene = (xcb_enter_notify_event_t *)ev;
+	struct client			*c;
+
+	log_msg("In handle_enter_notify...");
+
+	c = client_find_by_window(ene->event);
+
+	if (ene->event == current_screen->root) {
+		log_msg("EnterNotify:  Root Window.  Bailing.");
+		return;
+	}
+
+	if (ene->mode != XCB_NOTIFY_MODE_NORMAL) {
+		log_msg("\tNOT handling this request due to mode...");
+		return;
+	}
+
+	/* Now ascertain this window, and set its focus accordingly. */
+	c->current = 1;
+	c->previous = 0;
+	client_active(c);
 }
 
 static void
@@ -158,8 +209,10 @@ event_loop(void)
 	while ((ev = xcb_wait_for_event(dpy)) != NULL) {
 		rt = ev->response_type & ~0x80;
 
-		if (events[rt] != NULL)
+		if (events[rt] != NULL) {
 			events[rt](ev);
+			xcb_flush(dpy);
+		}
 		free(ev);
 	}
 }
