@@ -21,8 +21,13 @@
 #include <stdbool.h>
 #include <stdlib.h>
 #include <sys/param.h>
+#if defined(__linux__)
+#	include "compat/queue.h"
+#	include "compat/tree.h"
+#else
 #include <sys/queue.h>
 #include <sys/tree.h>
+#endif
 #include <xcb/xcb.h>
 #include <xcb/xcb_event.h>
 #include <xcb/xcb_icccm.h>
