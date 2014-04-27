@@ -71,7 +71,6 @@ handle_key_press(xcb_generic_event_t *ev)
 	xcb_key_symbols_t       *all_keysyms;
 	struct binding		*kb;
 	u_int			 clean_mask, mod_clean;
-	struct cmd		*cmd;
 	struct cmd_q		*cmdq = cmdq_new();
 
 	if ((all_keysyms = xcb_key_symbols_alloc(dpy)) == NULL)

@@ -146,7 +146,6 @@ empty:
 		cmdq->emptyfn(cmdq); /* may free cmdq */
 	empty = 1;
 
-out:
 	return (empty);
 }
 

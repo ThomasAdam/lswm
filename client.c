@@ -100,7 +100,7 @@ client_set_name(struct client *c)
 {
 	xcb_generic_error_t			*error;
 	xcb_get_property_cookie_t		 p_cookie;
-	xcb_get_property_reply_t		*r;
+	xcb_get_property_reply_t		*r = NULL;
 
 	p_cookie = xcb_get_property(dpy, 0, c->win, ewmh->_NET_WM_NAME,
 				    XCB_GET_PROPERTY_TYPE_ANY, 0, UINT_MAX);
@@ -139,7 +139,8 @@ client_wm_protocols(struct client *c)
 	xcb_icccm_get_wm_protocols_reply_t	 protocols;
 	xcb_atom_t				 wm_protocols = XCB_ATOM_NONE;
 	xcb_atom_t				 p_atom = XCB_ATOM_NONE;
-	int					 i, reply = 0;
+	int					 reply = 0;
+	u_int					 i;
 
 	/* Check the atom exists. */
 	if ((wm_protocols = ewmh->WM_PROTOCOLS) == XCB_ATOM_NONE)
