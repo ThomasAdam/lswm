@@ -19,16 +19,20 @@
 #include <string.h>
 #include <ctype.h>
 #include <X11/Xlib.h>
+#include <xkbcommon/xkbcommon.h>
 #include "lswm.h"
 
-static void		 add_binding(u_int, union pressed, u_int, const char *);
+static void	 add_binding(u_int, union pressed, u_int, const char *);
+static void	 print_key_bindings(void);
 
 void
 setup_bindings(void)
 {
 	u_int		 i, j, l, mouse, mbutton, modifiers;
-	KeySym		 keysym, lck;
 	u_int		 modifiers_array[] = { 0, XCB_MOD_MASK_LOCK };
+	xcb_keysym_t	 keysym;
+	xcb_keycode_t	 min_keycode, max_keycode;
+
 	union pressed	 pressed;
 	const struct keys {
 		const char	*modifier_string;
@@ -42,20 +46,15 @@ setup_bindings(void)
 		{ "4", "1", "move", TYPE_MOUSE },
 	};
 
+	min_keycode = xcb_get_setup(dpy)->min_keycode;
+	max_keycode = xcb_get_setup(dpy)->max_keycode;
+
 	for (i = 0; i < nitems(all_bindings); i++) {
 		switch (all_bindings[i].type) {
 		case TYPE_KEY: {
-			/* Rather than force the user to enter in
-			 * XK_$X directly, acceptthe single string notations,
-			 * and use those to lookup proper keysyms directly.  
-			 * Note that xcb-util doesn't seem to have the
-			 * equivalent of XStringToKeysym() so we've got to
-			 * default to a mixture of * X11/Xlib and XCB.  APIs!
-			 * Yaaaay!
-			 */
-			keysym = XStringToKeysym(all_bindings[i].key_name);
-			XConvertCase(keysym, &keysym, &lck);
-			if (keysym == XCB_NO_SYMBOL) {
+			keysym = xkb_keysym_from_name(all_bindings[i].key_name,
+			    XKB_KEYSYM_NO_FLAGS);
+			if (keysym == XKB_KEY_NoSymbol) {
 				log_msg("Unable to bind key: %s, no symbol",
 					all_bindings[i].key_name);
 				continue;
@@ -118,6 +117,7 @@ setup_bindings(void)
 		}
 	}
 	grab_all_bindings(current_screen->root);
+	print_key_bindings();
 }
 
 void
@@ -176,8 +176,6 @@ add_binding(u_int modifiers, union pressed p, u_int type, const char *cmd)
 		return;
 	}
 	kb = xmalloc(sizeof *kb);
-	memset(kb, 0, sizeof *kb);
-
 	kb->modifier = modifiers;
 	kb->p = p;
 	kb->type = type;

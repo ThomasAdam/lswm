@@ -68,6 +68,11 @@ randr_maybe_init(void)
 		randr_create_outputs(outputs, len, res->config_timestamp);
 	free(res);
 
+	if (len == 0) {
+		log_msg("RandR found with no screens, using single screen.");
+		goto single_screen;
+	}
+
 	/* If we end up here, then we should select for RandR events on the
 	 * root window and react accordingly.
 	 */

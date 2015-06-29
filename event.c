@@ -83,6 +83,8 @@ handle_key_press(xcb_generic_event_t *ev)
 		if (kb->type != TYPE_KEY)
 			continue;
 
+		log_msg("Found a key press...");
+
 		mod_clean = kb->modifier & ~(XCB_MOD_MASK_LOCK);
 		log_msg("KP: %d, K: %d, M: %d (%d)", keysym, kb->p.key,
 				mod_clean, clean_mask);
