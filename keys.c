@@ -19,19 +19,78 @@
 #include <string.h>
 #include <ctype.h>
 #include <X11/Xlib.h>
+#include <X11/keysym.h>
 #include <xkbcommon/xkbcommon.h>
+#include <xcb/xcb_keysyms.h>
 #include "lswm.h"
 
-static void	 add_binding(u_int, union pressed, u_int, const char *);
-static void	 print_key_bindings(void);
+static void		 add_binding(u_int, union pressed, u_int, const char *);
+static void		 print_key_bindings(void);
+static u_int		 find_numlock(void);
+static xcb_keycode_t	*get_keycodes(xcb_keysym_t);
+
+static u_int
+find_numlock(void)
+{
+	xcb_get_modifier_mapping_reply_t	*mm_reply;
+	xcb_keycode_t				*modmap, *numlock, kc;
+	u_int					 i, j, k, numlockmask;
+
+	if ((mm_reply = xcb_get_modifier_mapping_reply(dpy,
+	    xcb_get_modifier_mapping_unchecked(dpy), NULL)) == NULL) {
+		log_fatal("Couldn't acquire modifier map");
+		exit (1);
+	}
+
+	if ((modmap = xcb_get_modifier_mapping_keycodes(mm_reply)) == NULL) {
+		log_fatal("Couldn't acquire modmap");
+		exit (1);
+	}
+
+	numlock = get_keycodes(XK_Num_Lock);
+
+	for (i = 0; i < 8; i++) {
+		for (j = 0; j < mm_reply->keycodes_per_modifier; j++) {
+			kc = modmap[i * mm_reply->keycodes_per_modifier + j];
+			if (kc == XCB_NO_SYMBOL)
+				continue;
+			if (numlock != NULL) {
+				for (k = 0; numlock[k] != XCB_NO_SYMBOL; k++) {
+					if (numlock[k] == kc) {
+						numlockmask = 1 << i;
+						break;
+					}
+				}
+			}
+		}
+	}
+	free (numlock);
+	free (mm_reply);
+
+	return (numlockmask);
+}
+
+static
+xcb_keycode_t* get_keycodes(xcb_keysym_t keysym)
+{
+	xcb_key_symbols_t	*keysyms;
+	xcb_keycode_t		*keycode;
+
+	if ((keysyms = xcb_key_symbols_alloc(dpy)) == NULL)
+		return (NULL);
+
+	keycode = xcb_key_symbols_get_keycode(keysyms, keysym);
+	xcb_key_symbols_free(keysyms);
+
+	return (keycode);
+}
 
 void
 setup_bindings(void)
 {
 	u_int		 i, j, l, mouse, mbutton, modifiers;
-	u_int		 modifiers_array[] = { 0, XCB_MOD_MASK_LOCK };
+	u_int		 modifiers_array[4], numlock;
 	xcb_keysym_t	 keysym;
-	xcb_keycode_t	 min_keycode, max_keycode;
 
 	union pressed	 pressed;
 	const struct keys {
@@ -41,13 +100,16 @@ setup_bindings(void)
 		u_int		 type;
 	} all_bindings[] = {
 		{ "CM",	"a", "move", TYPE_KEY },
-		{ "4S", "q", "move", TYPE_KEY },
+		{ "4", "q", "move", TYPE_KEY },
 		{ "C", "s", "move", TYPE_KEY },
 		{ "4", "1", "move", TYPE_MOUSE },
 	};
 
-	min_keycode = xcb_get_setup(dpy)->min_keycode;
-	max_keycode = xcb_get_setup(dpy)->max_keycode;
+	numlock = find_numlock();
+	modifiers_array[0] = 0;
+	modifiers_array[1] = XCB_MOD_MASK_LOCK;
+	modifiers_array[2] = numlock;
+	modifiers_array[3] = numlock | XCB_MOD_MASK_LOCK;
 
 	for (i = 0; i < nitems(all_bindings); i++) {
 		switch (all_bindings[i].type) {
@@ -133,6 +195,8 @@ void
 grab_all_bindings(xcb_window_t win)
 {
 	struct binding	*kb;
+	xcb_keycode_t	*kc;
+	u_int		 i;
 
 	uint32_t values[] = {
 		XCB_EVENT_MASK_EXPOSURE|XCB_EVENT_MASK_BUTTON_PRESS|
@@ -142,13 +206,22 @@ grab_all_bindings(xcb_window_t win)
 	};
 	xcb_change_window_attributes(dpy, win, XCB_CW_EVENT_MASK, values);
 
+	xcb_ungrab_key(dpy, XCB_GRAB_ANY, win, XCB_MOD_MASK_ANY);
+
 	TAILQ_FOREACH(kb, &global_bindings, entry) {
 		switch (kb->type) {
-		case TYPE_KEY:
-			log_msg("Grabbing key with keysym: '%d' 0x%x",
-					kb->p.key, win);
-			xcb_grab_key(dpy, 1, win, kb->modifier, kb->p.key,
-				     XCB_GRAB_MODE_ASYNC, XCB_GRAB_MODE_ASYNC);
+		case TYPE_KEY: {
+			kc = get_keycodes(kb->p.key);
+
+			for (i = 0; kc[i] != XCB_NO_SYMBOL; i++) {
+				log_msg("Grabbing key with keysym: '%d' 0x%x",
+					kc[i], win);
+				xcb_grab_key(dpy, 0, win, kb->modifier,
+				    kc[i], XCB_GRAB_MODE_SYNC,
+				    XCB_GRAB_MODE_ASYNC);
+			}
+			free(kc);
+		}
 			break;
 		case TYPE_MOUSE:
 			log_msg("Grabbing mouse button (win: 0x%x)...", win);
